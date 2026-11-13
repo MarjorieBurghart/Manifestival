@@ -1,0 +1,26 @@
+[project]
+name = "explorateur-iiif"
+version = "0.1.0"
+description = "Explorer un manifest IIIF et télécharger ses images avec des noms de fichiers parlants."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["PySide6>=6.5"]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-qt", "ruff"]
+
+[project.gui-scripts]
+explorateur-iiif = "explorateur_iiif.app:main"
+
+[tool.setuptools.packages.find]
+include = ["explorateur_iiif*"]
+
+[tool.setuptools.package-data]
+explorateur_iiif = ["i18n/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# Les mêmes règles minimales que Varians : de vrais défauts seulement.
+[tool.ruff.lint]
+select = ["F", "E9", "B006", "B023"]

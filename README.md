@@ -1,2 +1,100 @@
 # Manifestival
-Explore and download image files from a IIIF Manifest
+
+*Explore and download image files from a IIIF Manifest.*
+
+Une petite application pour **parcourir un manifest IIIF** (le document qui
+décrit un manuscrit, un livre ou un recueil numérisé dans une bibliothèque
+numérique), **choisir des images** et **les télécharger** avec des noms de
+fichiers parlants : cote du manuscrit, numéro d'ordre, folio ou page…
+
+Interface en français, anglais, allemand, italien, tchèque, russe et japonais
+(menu **Langue**).
+
+## Ce que fait l'application
+
+- **Ouvrir un document** : coller l'adresse d'un manifest IIIF (versions 2 et 3)
+  et cliquer sur **Afficher**. On peut aussi ouvrir un manifest enregistré sur
+  l'ordinateur, faire glisser un lien ou un fichier dans la fenêtre, ou
+  choisir un document dans une *collection* IIIF. Les adresses déjà ouvertes
+  sont proposées dans la liste.
+- **Voir les images en vignettes**, avec leurs métadonnées : celles du document
+  (onglet **Document** : titre, cote, date, droits…) et celles de l'image
+  cliquée (onglet **Image** : libellé, position, dimensions…). Un double-clic
+  (ou Entrée) affiche l'image en grand, avec *Précédente* / *Suivante*.
+- **Sélectionner les images** par des cases à cocher :
+  - un clic coche ou décoche une image ;
+  - pour une suite d'images : un clic sur la première, puis **Maj+clic** (ou
+    **Ctrl+Maj+clic**) sur la dernière ;
+  - **Tout sélectionner** (Ctrl+A), **Tout désélectionner**, **Inverser la
+    sélection** ;
+  - au clavier : flèches, Espace pour cocher, Maj+Espace pour une plage.
+- **Télécharger** la sélection (bouton en bas à droite) :
+  - choix du **dossier**, avec un sous-dossier au nom du préfixe si on le
+    souhaite ;
+  - **nom des fichiers** composé à la carte : un **préfixe** (l'application
+    propose la cote trouvée dans les métadonnées), le **numéro d'ordre**
+    (001, 002…), le **libellé de l'image** (f. 1r, p. 12…), un **champ de
+    métadonnées** des images ; séparateur au choix, espaces remplacés, accents
+    retirés si on le souhaite ; **aperçu** des noms obtenus ;
+  - pour les utilisateurs avancés, un **modèle personnalisé** :
+    `{prefix}`, `{n}`, `{label}`, `{title}`, `{meta:Nom du champ}` ;
+  - **taille** : la plus grande disponible, ou 3000, 1500, 800 pixels au plus ;
+  - si un fichier existe déjà : le garder (pour **reprendre** un téléchargement
+    interrompu), le remplacer, ou garder les deux ;
+  - en option, la **liste des images** (CSV, lisible par un tableur) et une
+    copie du **manifest** (JSON) à côté des images ;
+  - progression, arrêt, **nouvel essai** des images en échec, ouverture du
+    dossier à la fin.
+
+Les images sont téléchargées une à une, en respectant les serveurs qui
+demandent de patienter (code 429, « Retry-After »). Une image n'apparaît sous
+son nom définitif qu'une fois complète.
+
+Exemple : avec le préfixe « BnF lat. 1234 », le numéro d'ordre et le libellé,
+la 7ᵉ image d'un manuscrit de 250 images, intitulée « f. 4r », devient
+`BnF_lat_1234_007_f_4r.jpg`.
+
+## Installation
+
+Il faut **Python 3.10 ou plus récent** (https://www.python.org) et la
+bibliothèque **PySide6**.
+
+- **Windows** : double-cliquer une fois sur `installer_dependances.bat`, puis
+  lancer l'application avec `lancer.bat`.
+- **macOS** : dans le Terminal, `python3 -m pip install -r requirements.txt`,
+  puis double-cliquer sur `lancer.command`.
+- **Linux** : `python3 -m pip install -r requirements.txt`, puis `./lancer.sh`.
+
+En ligne de commande, on peut ouvrir directement un manifest :
+
+```bash
+python explorateur.py https://exemple.org/iiif/manuscrit/manifest.json
+```
+
+## Pour les développeurs
+
+```
+explorateur.py              lancement
+explorateur_iiif/
+  manifest.py               lecture des manifests IIIF 2 et 3 (sans Qt)
+  images.py                 adresses des vignettes et des images (API Image)
+  naming.py                 noms des fichiers (modèles, nettoyage, doublons)
+  download.py               téléchargement, reprise, liste CSV (sans Qt)
+  net.py, sources.py        réseau et lecture des manifests
+  i18n.py, i18n/*.json      traductions (pluriels selon chaque langue)
+  ui/                       interface PySide6
+tests/                      tests (pytest, pytest-qt) avec un serveur IIIF local
+```
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m ruff check .
+python -m pytest -q
+```
+
+Sous Linux sans écran, lancer les tests avec `QT_QPA_PLATFORM=offscreen`.
+
+Pour ajouter un texte à l'interface : ajouter la clé dans **les sept** fichiers
+`explorateur_iiif/i18n/*.json` (les tests le vérifient). Un texte qui dépend
+d'un nombre est un objet `{"one": …, "other": …}` (tchèque : `few` en plus ;
+russe : `few` et `many` ; japonais : `other` seulement).

@@ -1,0 +1,222 @@
+# -*- coding: utf-8 -*-
+"""L'application pilotée (Qt sans écran) contre un serveur IIIF local."""
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from iiif_test_server import IIIFServer, real_jpeg
+
+from PySide6.QtCore import QPoint, QSettings, Qt
+from PySide6.QtWidgets import QApplication, QInputDialog, QMessageBox
+
+from explorateur_iiif.i18n import Translator
+from explorateur_iiif.ui.download_dialog import DownloadDialog
+from explorateur_iiif.ui.main_window import MainWindow
+
+
+@pytest.fixture
+def server(qapp):
+    with IIIFServer(real_jpeg()) as srv:
+        yield srv
+
+
+@pytest.fixture
+def settings(tmp_path):
+    s = QSettings(str(tmp_path / "settings.ini"), QSettings.IniFormat)
+    yield s
+    s.sync()
+
+
+@pytest.fixture
+def window(qtbot, settings, monkeypatch):
+    # Pas de boîte modale bloquante pendant les tests.
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: QMessageBox.Ok)
+    win = MainWindow(Translator("fr"), settings)
+    qtbot.addWidget(win)
+    win.resize(1000, 700)
+    win.show()
+    yield win
+    win.loader.shutdown()
+
+
+def _open(qtbot, win, url):
+    win.address_combo.setEditText(url)
+    win.open_address()
+    qtbot.waitUntil(lambda: win.manifest is not None and win.manifest_thread is None, timeout=10000)
+
+
+def _click(qtbot, view, row, modifiers=Qt.NoModifier):
+    rect = view.visualRect(view.model().index(row))
+    qtbot.mouseClick(view.viewport(), Qt.LeftButton, modifiers, rect.center())
+
+
+def test_open_manifest_show_thumbnails_and_metadata(qtbot, window, server):
+    _open(qtbot, window, server.base + "/manifest3.json")
+    assert window.model.rowCount() == 5
+    assert window.stack.currentIndex() == 1
+    assert "Psautier de test" in window.windowTitle()
+    qtbot.waitUntil(lambda: len(window.model.thumbs) == 5, timeout=10000)
+    assert any("/full/!240,240/0/default.jpg" in r for r in server.requests)
+    html = window.manifest_info.toHtml()
+    assert "Ms. lat. 1234" in html and "catalogue" in html and "alert(1)" not in html
+    assert "f. 1r" in window.page_info.toHtml()
+    window.view.setCurrentIndex(window.model.index(2))
+    assert "f. 2r" in window.page_info.toHtml()
+    # Adresse retenue dans l'historique.
+    assert window.settings.value("recent")[0] == server.base + "/manifest3.json"
+
+
+def test_click_shift_click_and_select_all(qtbot, window, server):
+    _open(qtbot, window, server.base + "/manifest3.json")
+    view, model = window.view, window.model
+    _click(qtbot, view, 1)
+    assert model.checked_rows() == [1]
+    _click(qtbot, view, 3, Qt.ControlModifier | Qt.ShiftModifier)
+    assert model.checked_rows() == [1, 2, 3]
+    _click(qtbot, view, 2)
+    assert model.checked_rows() == [1, 3]
+    # Plage depuis une image décochée : la plage est décochée.
+    _click(qtbot, view, 0, Qt.ShiftModifier)
+    assert model.checked_rows() == [3]
+    assert "1 sélectionnée" in window.count_label.text()
+    window.select_all_button.click()
+    assert model.checked_count() == 5 and window.download_button.isEnabled()
+    window.invert_button.click()
+    assert model.checked_count() == 0 and not window.download_button.isEnabled()
+    # Un clic sur la case elle-même ne l'inverse qu'une fois.
+    window.model.set_all(False)
+    corner = view.visualRect(model.index(2)).topLeft()
+    qtbot.mouseClick(view.viewport(), Qt.LeftButton, Qt.NoModifier, corner + QPoint(15, 15))
+    assert model.checked_rows() == [2]
+    window.model.set_all(False)
+    # Clavier : Espace coche l'image courante.
+    view.setCurrentIndex(model.index(4))
+    qtbot.keyClick(view, Qt.Key_Space)
+    assert model.checked_rows() == [4]
+
+
+def test_double_click_previews_without_changing_the_box(qtbot, window, server):
+    _open(qtbot, window, server.base + "/manifest3.json")
+    rect = window.view.visualRect(window.model.index(2))
+    qtbot.mouseDClick(window.view.viewport(), Qt.LeftButton, Qt.NoModifier, rect.center())
+    # mouseDClick n'envoie que le double-clic : le premier clic le précède
+    # en vrai ; l'état revient donc à son contraire ici.
+    preview = window.preview_dialog
+    assert preview is not None and preview.row == 2
+    preview.check.setChecked(True)
+    assert window.model.is_checked(2)
+    preview.next.click()
+    assert preview.row == 3 and not preview.check.isChecked()
+    preview.close()
+
+
+def test_download_dialog_names_and_files(qtbot, window, server, tmp_path):
+    _open(qtbot, window, server.base + "/manifest3.json")
+    window.model.set_checked([0, 1, 4], True)
+    window.settings.setValue("download/folder", str(tmp_path))
+    window.open_download()
+    dialog: DownloadDialog = window.download_dialog
+    assert dialog.prefix_combo.itemText(0) == "Ms. lat. 1234"
+    dialog.prefix_combo.setEditText("Ms. lat. 1234")
+    preview = dialog.preview_label.text().splitlines()
+    assert preview == ["Ms_lat_1234_001_f_1r.jpg", "Ms_lat_1234_002_f_1v.jpg",
+                       "Ms_lat_1234_005_Reliure-dos.jpg"]
+    dialog.part_checks["n"].setChecked(False)
+    assert dialog.preview_label.text().splitlines()[0] == "Ms_lat_1234_f_1r.jpg"
+    dialog.part_checks["n"].setChecked(True)
+    dialog.separator_combo.setCurrentIndex(1)  # tiret
+    assert dialog.preview_label.text().splitlines()[0] == "Ms-lat-1234-001-f-1r.jpg"
+    dialog.separator_combo.setCurrentIndex(0)
+    dialog.part_checks["meta"].setChecked(True)
+    assert dialog.preview_label.text().splitlines()[0] == "Ms_lat_1234_001_f_1r_1.jpg"
+    dialog.part_checks["meta"].setChecked(False)
+    # Modèle personnalisé.
+    dialog.custom_check.setChecked(True)
+    dialog.template_edit.setText("{label}--{prefix}")
+    assert dialog.preview_label.text().splitlines()[0] == "f_1r-Ms_lat_1234.jpg"
+    dialog.custom_check.setChecked(False)
+
+    dialog.start()
+    qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
+    folder = tmp_path / "Ms_lat_1234"
+    names = sorted(p.name for p in folder.iterdir())
+    assert names == ["Ms_lat_1234_001_f_1r.jpg", "Ms_lat_1234_002_f_1v.jpg",
+                     "Ms_lat_1234_005_Reliure-dos.jpg", "Ms_lat_1234_images.csv",
+                     "Ms_lat_1234_manifest.json"]
+    assert json.loads((folder / "Ms_lat_1234_manifest.json").read_text(encoding="utf-8"))["type"] == "Manifest"
+    assert "3 images téléchargées" in dialog.status.text()
+    assert dialog.open_button.isVisible()
+    # Réglages retenus pour la fois suivante.
+    assert window.settings.value("naming/parts") == ["prefix", "n", "label"]
+    # Une seconde fois : les fichiers présents sont gardés.
+    dialog.start()
+    qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
+    assert "3 déjà présentes" in dialog.status.text()
+    dialog.reject()
+
+
+def test_download_failures_can_be_retried(qtbot, window, server, tmp_path):
+    _open(qtbot, window, server.base + "/manifest3.json")
+    window.model.set_checked([0, 1], True)
+    target = tmp_path / "images"
+    window.settings.setValue("download/folder", str(target))
+    window.settings.setValue("download/subfolder", False)
+    window.settings.setValue("download/index", False)
+    window.open_download()
+    dialog = window.download_dialog
+    server.failures["img2"] = [403]
+    dialog.start()
+    qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
+    assert "1 échec" in dialog.status.text()
+    assert "Accès refusé" in dialog.details.toPlainText()
+    assert dialog.retry_button.isVisible()
+    dialog.retry_button.click()
+    qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
+    assert "2 images téléchargées" in dialog.status.text()
+    assert not dialog.retry_button.isVisible()
+    assert sorted(p.name for p in target.iterdir()) == ["001_f_1r.jpg", "002_f_1v.jpg"]
+    dialog.reject()
+
+
+def test_v2_manifest_language_switch_and_errors(qtbot, window, server, monkeypatch):
+    warnings = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda parent, title, text, *a: warnings.append(text))
+    _open(qtbot, window, server.base + "/manifest2.json")
+    assert window.model.rowCount() == 3 and "Livre d'heures" in window.windowTitle()
+    window.model.set_checked([1], True)
+    window.set_language("en")
+    assert window.open_button.text() == "Show"
+    assert "Book of hours" in window.windowTitle()
+    assert window.model.checked_rows() == [1]  # la sélection survit
+    window.set_language("ja")
+    assert window.open_button.text() == "表示"
+    window.set_language("fr")
+
+    window.address_combo.setEditText(server.base + "/page.html")
+    window.open_address()
+    qtbot.waitUntil(lambda: window.manifest_thread is None and bool(warnings), timeout=10000)
+    assert "JSON" in warnings[-1]
+    window.address_combo.setEditText(server.base + "/missing.json")
+    window.open_address()
+    qtbot.waitUntil(lambda: window.manifest_thread is None and len(warnings) == 2, timeout=10000)
+    assert "404" in warnings[-1]
+
+
+def test_collection_offers_its_manifests(qtbot, window, server, monkeypatch):
+    monkeypatch.setattr(QInputDialog, "getItem",
+                        lambda parent, title, label, items, *a: (items[1], True))
+    window.address_combo.setEditText(server.base + "/collection.json")
+    window.open_address()
+    qtbot.waitUntil(lambda: window.manifest is not None and window.manifest_thread is None,
+                    timeout=10000)
+    assert window.manifest.version == 2
+
+
+def test_tile_size_slider(qtbot, window, server):
+    _open(qtbot, window, server.base + "/manifest3.json")
+    small = window.view.visualRect(window.model.index(0)).width()
+    window.size_slider.setValue(240)
+    QApplication.processEvents()
+    qtbot.waitUntil(lambda: window.view.visualRect(window.model.index(0)).width() > small)
