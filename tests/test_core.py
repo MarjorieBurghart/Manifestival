@@ -11,11 +11,11 @@ import pytest
 
 from iiif_test_server import FAKE_JPEG, IIIFServer, collection, manifest_v2, manifest_v3
 
-from explorateur_iiif import download as dl
-from explorateur_iiif import images, naming, net
-from explorateur_iiif.manifest import (ManifestError, Page, collection_entries, is_collection,
+from manifestival import download as dl
+from manifestival import images, naming, net
+from manifestival.manifest import (ManifestError, Page, collection_entries, is_collection,
                                        parse_manifest, safe_html, text_of)
-from explorateur_iiif.sources import SourceError, load_json, normalize
+from manifestival.sources import SourceError, load_json, normalize
 
 BASE = "https://example.org"
 
@@ -125,7 +125,7 @@ def test_image_addresses():
 
 
 def test_image_api_1_services_use_native_quality():
-    from explorateur_iiif.manifest import image_service
+    from manifestival.manifest import image_service
     svc = image_service({"@id": "https://g.fr/iiif/ark:/1/f1",
                          "profile": "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level2"})
     assert svc.version == 1

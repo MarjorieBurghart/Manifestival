@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Lancement de l'application : ``python explorateur.py [adresse-du-manifest]``."""
+"""Lancement de l'application : ``python lancer_manifestival.py [adresse-du-manifest]``."""
 from __future__ import annotations
 
 import sys
@@ -22,8 +22,8 @@ def main(argv=None) -> int:
     app = QApplication(argv)
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(__version__)
-    app.setOrganizationName("ExplorateurIIIF")
-    settings = QSettings("ExplorateurIIIF", "ExplorateurIIIF")
+    app.setOrganizationName("Manifestival")
+    settings = QSettings("Manifestival", "Manifestival")
     language = str(settings.value("language", "") or system_language())
     window = MainWindow(Translator(language), settings)
     window.show()

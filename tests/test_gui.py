@@ -11,9 +11,9 @@ from iiif_test_server import IIIFServer, real_jpeg
 from PySide6.QtCore import QPoint, QSettings, Qt
 from PySide6.QtWidgets import QApplication, QInputDialog, QMessageBox
 
-from explorateur_iiif.i18n import Translator
-from explorateur_iiif.ui.download_dialog import DownloadDialog
-from explorateur_iiif.ui.main_window import MainWindow
+from manifestival.i18n import Translator
+from manifestival.ui.download_dialog import DownloadDialog
+from manifestival.ui.main_window import MainWindow
 
 
 @pytest.fixture

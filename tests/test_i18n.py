@@ -10,9 +10,9 @@ import pytest
 
 from iiif_test_server import ROOT
 
-from explorateur_iiif import i18n
+from manifestival import i18n
 
-PACKAGE = ROOT / "explorateur_iiif"
+PACKAGE = ROOT / "manifestival"
 PLURAL_CATEGORIES = {"fr": {"one", "other"}, "en": {"one", "other"}, "de": {"one", "other"},
                      "it": {"one", "other"}, "cs": {"one", "few", "other"},
                      "ru": {"one", "few", "many", "other"}, "ja": {"other"}}

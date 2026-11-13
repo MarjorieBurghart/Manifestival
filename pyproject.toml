@@ -1,5 +1,5 @@
 [project]
-name = "explorateur-iiif"
+name = "manifestival"
 version = "0.1.0"
 description = "Explorer un manifest IIIF et télécharger ses images avec des noms de fichiers parlants."
 readme = "README.md"
@@ -10,13 +10,13 @@ dependencies = ["PySide6>=6.5"]
 dev = ["pytest", "pytest-qt", "ruff"]
 
 [project.gui-scripts]
-explorateur-iiif = "explorateur_iiif.app:main"
+manifestival = "manifestival.app:main"
 
 [tool.setuptools.packages.find]
-include = ["explorateur_iiif*"]
+include = ["manifestival*"]
 
 [tool.setuptools.package-data]
-explorateur_iiif = ["i18n/*.json"]
+manifestival = ["i18n/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

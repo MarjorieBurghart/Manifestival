@@ -68,14 +68,16 @@ bibliothèque **PySide6**.
 En ligne de commande, on peut ouvrir directement un manifest :
 
 ```bash
-python explorateur.py https://exemple.org/iiif/manuscrit/manifest.json
+python lancer_manifestival.py https://exemple.org/iiif/manuscrit/manifest.json
 ```
+
+ou, de façon équivalente, `python -m manifestival https://…`.
 
 ## Pour les développeurs
 
 ```
-explorateur.py              lancement
-explorateur_iiif/
+lancer_manifestival.py      lancement
+manifestival/
   manifest.py               lecture des manifests IIIF 2 et 3 (sans Qt)
   images.py                 adresses des vignettes et des images (API Image)
   naming.py                 noms des fichiers (modèles, nettoyage, doublons)
@@ -95,6 +97,6 @@ python -m pytest -q
 Sous Linux sans écran, lancer les tests avec `QT_QPA_PLATFORM=offscreen`.
 
 Pour ajouter un texte à l'interface : ajouter la clé dans **les sept** fichiers
-`explorateur_iiif/i18n/*.json` (les tests le vérifient). Un texte qui dépend
+`manifestival/i18n/*.json` (les tests le vérifient). Un texte qui dépend
 d'un nombre est un objet `{"one": …, "other": …}` (tchèque : `few` en plus ;
 russe : `few` et `many` ; japonais : `other` seulement).

@@ -19,7 +19,7 @@ import urllib.request
 
 from . import __version__
 
-USER_AGENT = f"ExplorateurIIIF/{__version__} (Python urllib)"
+USER_AGENT = f"Manifestival/{__version__} (Python urllib)"
 CHUNK = 64 * 1024
 
 
