@@ -73,11 +73,35 @@ python lancer_manifestival.py https://exemple.org/iiif/manuscrit/manifest.json
 
 ou, de façon équivalente, `python -m manifestival https://…`.
 
+## Depuis Spyder
+
+1. Installer PySide6 dans l'environnement Python qu'utilise la console de
+   Spyder. Dans cette console : `%pip install PySide6`.
+2. Ouvrir `lancer_manifestival.py` et l'exécuter (**F5**).
+
+Manifestival s'ouvre dans sa propre fenêtre, sans bloquer la console. Ses
+messages d'erreur s'affichent dans la console, et on peut relancer autant de
+fois qu'on veut, par exemple après avoir modifié le code. Il n'y a rien à
+régler dans Spyder : l'application tourne dans un processus à part et n'entre
+donc pas en conflit avec la bibliothèque Qt de Spyder ni avec ses graphiques.
+
+En haut de `lancer_manifestival.py`, deux réglages :
+
+- `MANIFEST = "https://…"` : un manifest à ouvrir dès le démarrage, pratique
+  pendant le développement ;
+- `SEPARATE_PROCESS = False` : faire tourner l'application dans la console
+  elle-même, pour la suivre au **débogueur** de Spyder (points d'arrêt,
+  Ctrl+F5). Il faut alors régler *Outils › Préférences › Console IPython ›
+  Graphiques › Backend* sur **Intégré** (Inline) et redémarrer la console.
+  Si une autre bibliothèque Qt (PyQt5…) est déjà chargée dans la console,
+  Manifestival repasse de lui-même dans un processus à part et le signale.
+
 ## Pour les développeurs
 
 ```
-lancer_manifestival.py      lancement
+lancer_manifestival.py      lancement (ligne de commande, Spyder)
 manifestival/
+  app.py, launch.py         démarrage ; console IPython (Spyder, Jupyter)
   manifest.py               lecture des manifests IIIF 2 et 3 (sans Qt)
   images.py                 adresses des vignettes et des images (API Image)
   naming.py                 noms des fichiers (modèles, nettoyage, doublons)
