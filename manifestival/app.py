@@ -108,7 +108,27 @@ def main(argv=None, settings=None) -> int:
         # La console fait déjà tourner Qt : la fenêtre vit sans la bloquer.
         _windows[:] = [w for w in _windows if w.isVisible()] + [window]
         return 0
-    return app.exec()
+    status = app.exec()
+    if window.browser is not None and sys.version_info < (3, 12):
+        exit_now(status, window.settings)
+    return status
+
+
+def exit_now(status: int, settings=None):
+    """Quitte sans la phase de destruction de Python. Avec Python 3.10 et
+    3.11, quand Qt WebEngine (navigateur intégré) a servi, cette phase peut
+    planter (défaut de PySide6/Qt WebEngine, sans conséquence sur le
+    travail fait) ; à partir de Python 3.12, elle se passe bien. Les
+    réglages et les sorties sont enregistrés d'abord."""
+    import os
+    if settings is not None:
+        settings.sync()
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.flush()
+        except Exception:
+            pass
+    os._exit(int(status))
 
 
 if __name__ == "__main__":

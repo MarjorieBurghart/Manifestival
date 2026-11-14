@@ -118,11 +118,19 @@ class BrowserSession(QObject):
             self.profile.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
         else:
             self.profile = QWebEngineProfile(self)   # sans disque (tests)
-        self.page = QWebEnginePage(self.profile, self)
+        self._pages: list = []           # pages de ce profil, à fermer avant lui
+        self.page = self.new_page(self)
         self.pending: dict[str, list[_Ticket]] = {}
         self.profile.downloadRequested.connect(self._on_download)
         self._start_requested.connect(self._start, Qt.QueuedConnection)
         self._cancel_requested.connect(self._cancel, Qt.QueuedConnection)
+
+    def new_page(self, parent=None):
+        """Page de navigateur sur le profil de Manifestival ; la session la
+        fermera avant le profil (sinon, Qt WebEngine plante à la sortie)."""
+        page = QWebEnginePage(self.profile, parent)
+        self._pages = [p for p in self._pages if shiboken6.isValid(p)] + [page]
+        return page
 
     # ------------------------------------------------------------ sites
     def handles(self, url: str) -> bool:
@@ -148,9 +156,10 @@ class BrowserSession(QObject):
             self.profile.downloadRequested.disconnect(self._on_download)
         except (RuntimeError, TypeError):
             pass
-        for page in [self.page] + [p for p in self.profile.findChildren(QWebEnginePage)]:
+        for page in self._pages + list(self.profile.findChildren(QWebEnginePage)):
             if shiboken6.isValid(page):
                 shiboken6.delete(page)
+        self._pages = []
         if shiboken6.isValid(self.profile):
             shiboken6.delete(self.profile)
         self._tmp.cleanup()
@@ -300,7 +309,7 @@ class VerifyDialog(QDialog):
         self.intro = QLabel()
         self.intro.setWordWrap(True)
         self.view = QWebEngineView(self)
-        self.view.setPage(QWebEnginePage(session.profile, self.view))
+        self.view.setPage(session.new_page(self.view))
         self.status = QLabel()
         self.cancel_button = QPushButton()
         self.cancel_button.clicked.connect(self.reject)

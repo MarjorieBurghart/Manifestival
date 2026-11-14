@@ -184,10 +184,9 @@ def _check_browser():
     # Une vraie vue de navigateur, comme la fenêtre de vérification : la
     # page doit s'afficher (rendu, processus auxiliaire, ressources).
     from PySide6.QtCore import QUrl
-    from PySide6.QtWebEngineCore import QWebEnginePage
     from PySide6.QtWebEngineWidgets import QWebEngineView
     view = QWebEngineView()
-    view.setPage(QWebEnginePage(session.profile, view))
+    view.setPage(session.new_page(view))
     shown = {}
     view.loadFinished.connect(lambda ok: shown.setdefault("ok", ok))
     view.resize(400, 300)
