@@ -23,7 +23,7 @@ from .net import FetchError
 from .politeness import host_of
 
 LIMIT = 200
-CONTEXTS = ("manifest", "thumbnails", "download", "zoom")
+CONTEXTS = ("manifest", "thumbnails", "download", "zoom", "browser")
 
 
 @dataclass

@@ -200,5 +200,7 @@
  "browser.offer_title": "Browser verification",
  "browser.offer": "The site {host} only accepts web browsers (protection: {protection}).\n\nManifestival can open a browser window to pass the check, then download through this browser, at the pace the site allows.\n\nOpen the verification?",
  "browser.verify_button": "Pass the verification…",
- "browser.forgotten": "The built-in browser's verifications and cookies have been cleared."
+ "browser.forgotten": "The built-in browser's verifications and cookies have been cleared.",
+ "browser.blocked": "The site {host} also refuses this built-in browser: this is a block, not a verification. Close this window (the refusal is recorded in Help › Server refusal log).",
+ "refusals.context_browser": "built-in browser"
 }

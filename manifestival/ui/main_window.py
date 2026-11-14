@@ -18,6 +18,7 @@ from .. import APP_NAME, __version__, net
 from ..i18n import LANGUAGES
 from ..images import thumbnail_urls
 from ..manifest import collection_entries, is_collection, parse_manifest
+from .. import politeness
 from ..politeness import host_of, rule_for
 from ..sources import load_json, normalize
 from ..refusals import RefusalLog
@@ -67,7 +68,9 @@ class MainWindow(QMainWindow):
         self._offered_for = None
         if browser.available() and settings.value(browser.SETTINGS_KEY):
             self.ensure_browser()
-        self.fetch = browser.routed_fetch(lambda: self.browser, fetch)
+        # Toutes les requêtes passent par le régulateur commun : un serveur
+        # n'est jamais sollicité plus vite que sa règle (politeness.py).
+        self.fetch = politeness.SHARED.wrap(browser.routed_fetch(lambda: self.browser, fetch))
         # Journal des refus des serveurs ; sans fichier, le temps de la session.
         self.refusals = refusals if refusals is not None else RefusalLog()
         self.refusals_dialog: RefusalsDialog | None = None
@@ -587,6 +590,9 @@ class MainWindow(QMainWindow):
         session = self.ensure_browser()
         self.verify_dialog = browser.VerifyDialog(self.tr_, session, url, error.protection, self)
         self.verify_dialog.destroyed.connect(self._verify_dialog_gone)
+        self.verify_dialog.blocked.connect(
+            lambda host, u=url, p=error.protection: self.refusals.record(
+                net.FetchError("blocked", u, 403, detail="browser", protection=p or "?"), "browser", u))
         if then is not None:
             self.verify_dialog.verified.connect(lambda _host: then())
         self.verify_dialog.start()

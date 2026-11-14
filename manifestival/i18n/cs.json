@@ -211,5 +211,7 @@
  "browser.offer_title": "Ověření prohlížeče",
  "browser.offer": "Web {host} přijímá jen webové prohlížeče (ochrana: {protection}).\n\nManifestival může otevřít okno prohlížeče, v němž ověření proběhne, a poté stahovat přes tento prohlížeč tempem, které web povoluje.\n\nOtevřít ověření?",
  "browser.verify_button": "Projít ověřením…",
- "browser.forgotten": "Ověření a cookies vestavěného prohlížeče byly vymazány."
+ "browser.forgotten": "Ověření a cookies vestavěného prohlížeče byly vymazány.",
+ "browser.blocked": "Web {host} odmítá i tento vestavěný prohlížeč: jde o blokování, ne o ověření. Zavřete toto okno (odmítnutí je zapsáno v Nápověda › Záznam odmítnutí serverů).",
+ "refusals.context_browser": "vestavěný prohlížeč"
 }

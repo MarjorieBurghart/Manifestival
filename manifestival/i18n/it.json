@@ -200,5 +200,7 @@
  "browser.offer_title": "Verifica del browser",
  "browser.offer": "Il sito {host} accetta solo browser web (protezione: {protection}).\n\nManifestival può aprire una finestra del browser per superare la verifica, poi scaricare tramite questo browser, al ritmo consentito dal sito.\n\nAprire la verifica?",
  "browser.verify_button": "Supera la verifica…",
- "browser.forgotten": "Le verifiche e i cookie del browser integrato sono stati cancellati."
+ "browser.forgotten": "Le verifiche e i cookie del browser integrato sono stati cancellati.",
+ "browser.blocked": "Il sito {host} rifiuta anche questo browser integrato: è un blocco, non una verifica. Chiudi questa finestra (il rifiuto è registrato in Aiuto › Registro dei rifiuti dei server).",
+ "refusals.context_browser": "browser integrato"
 }

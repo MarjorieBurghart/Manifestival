@@ -284,6 +284,11 @@ def routed_fetch(session_getter, base=net.fetch):
     return fetch
 
 
+# Signes d'une page de blocage : le site refuse ce navigateur, attendre ne
+# sert à rien.
+_BLOCK_SIGNS = ("you have been blocked", "you are unable to access", "access denied", "error 1020",
+                "error 1010", "request blocked")
+
 # Signes d'une page de vérification encore affichée.
 _CHALLENGE_SIGNS = ("just a moment", "verify you are human", "checking your browser", "attention required",
                     "making sure you're not a bot", "vérification", "un instant")
@@ -294,6 +299,7 @@ class VerifyDialog(QDialog):
     ``verified`` est émis, et la fenêtre se ferme, quand le document
     (manifest JSON) s'affiche."""
     verified = Signal(str)          # site
+    blocked = Signal(str)           # site qui refuse aussi le navigateur intégré
 
     def __init__(self, tr, session: BrowserSession, url: str, protection: str = "", parent=None):
         super().__init__(parent)
@@ -347,7 +353,16 @@ class VerifyDialog(QDialog):
         if self.done_:
             return
         sample = (text or "").lstrip()
-        if sample.startswith(("{", "[")) and not any(s in sample[:2000].lower() for s in _CHALLENGE_SIGNS):
+        is_document = sample.startswith(("{", "["))
+        if not is_document and any(sign in sample[:4000].lower() for sign in _BLOCK_SIGNS):
+            # Blocage, et non vérification : on cesse d'attendre et on le dit.
+            self.done_ = True
+            self.poll.stop()
+            self.status.setText(self.tr_("browser.blocked", host=host_of(self.url)))
+            self.cancel_button.setText(self.tr_("button.close"))
+            self.blocked.emit(host_of(self.url))
+            return
+        if is_document:
             self.done_ = True
             self.poll.stop()
             self.session.add_host(self.url, self.protection)

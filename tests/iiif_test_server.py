@@ -24,6 +24,10 @@ CHALLENGE_PAGE = b"""<!DOCTYPE html><html><head><title>Just a moment...</title><
 </body></html>"""
 
 
+BLOCK_PAGE = b"""<!DOCTYPE html><html><head><title>Attention Required! | Cloudflare</title></head>
+<body><h1>Sorry, you have been blocked</h1><h2>You are unable to access this site</h2></body></html>"""
+
+
 def real_jpeg(width: int = 60, height: int = 90, color: int = 0x8A6D3B) -> bytes:
     """Vraie image JPEG (Qt), pour les vignettes de l'interface."""
     from PySide6.QtCore import QBuffer, QByteArray, QIODevice
@@ -147,6 +151,7 @@ class IIIFServer:
         self.cloudflare = False   # True : toute image refusée comme par Cloudflare
         self.challenge = False    # True : page de vérification sans le cookie posé par JavaScript
         self.challenged: list[str] = []
+        self.block_browsers = False   # True : refus du navigateur intégré (QtWebEngine)
         self.delay = 0.0          # secondes avant de répondre pour une image
         self.source = source
         self.tiles = tiles
@@ -163,6 +168,10 @@ class IIIFServer:
                 with server.lock:
                     server.requests.append(self.path)
                 base = server.base
+                if server.block_browsers and "QtWebEngine" in (self.headers.get("User-Agent") or ""):
+                    # Blocage d'un navigateur reconnu (page de refus de Cloudflare).
+                    return self._send(403, BLOCK_PAGE, "text/html; charset=utf-8",
+                                      {"Server": "cloudflare", "CF-RAY": "0-TEST"})
                 if server.challenge and "mf_clearance=ok" not in (self.headers.get("Cookie") or ""):
                     # Vérification à la Cloudflare : une page que seul un
                     # navigateur passe (JavaScript qui pose un cookie et recharge).

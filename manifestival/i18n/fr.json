@@ -200,5 +200,7 @@
  "browser.offer_title": "Vérification du navigateur",
  "browser.offer": "Le site {host} n'accepte que les navigateurs web (protection : {protection}).\n\nManifestival peut ouvrir une fenêtre de navigateur pour passer la vérification, puis télécharger par ce navigateur, au rythme permis par le site.\n\nOuvrir la vérification ?",
  "browser.verify_button": "Passer la vérification…",
- "browser.forgotten": "Les vérifications et les cookies du navigateur intégré ont été effacés."
+ "browser.forgotten": "Les vérifications et les cookies du navigateur intégré ont été effacés.",
+ "browser.blocked": "Le site {host} refuse aussi ce navigateur intégré : c'est un blocage, pas une vérification. Fermez cette fenêtre (le refus est noté dans Aide › Journal des refus des serveurs).",
+ "refusals.context_browser": "navigateur intégré"
 }

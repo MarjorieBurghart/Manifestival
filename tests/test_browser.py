@@ -156,3 +156,28 @@ def test_whole_flow_in_the_main_window(qtbot, settings, monkeypatch):
         assert win.browser.handles(server.base)
         qtbot.waitUntil(lambda: len(win.model.thumbs) == 5, timeout=30000)
         win.close()                     # ferme aussi le navigateur, dans l'ordre
+
+
+def test_a_block_page_in_the_browser_is_recognised_and_logged(qtbot, settings, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+    from manifestival.i18n import Translator
+    from manifestival.ui.main_window import MainWindow
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: QMessageBox.Ok)
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.Yes)
+    with IIIFServer(real_jpeg()) as server:
+        server.challenge = True          # les logiciels : page de vérification
+        server.block_browsers = True     # le navigateur intégré : refusé
+        win = MainWindow(Translator("fr"), settings)
+        qtbot.addWidget(win)
+        win.show()
+        win.address_combo.setEditText(server.base + "/manifest3.json")
+        win.open_address()
+        qtbot.waitUntil(lambda: win.verify_dialog is not None, timeout=10000)
+        dialog = win.verify_dialog
+        with qtbot.waitSignal(dialog.blocked, timeout=20000):
+            pass
+        assert "blocage" in dialog.status.text() and dialog.cancel_button.text() == "Fermer"
+        assert not win.browser.handles(server.base)      # pas de faux succès
+        last = win.refusals.items[-1]
+        assert (last.context, last.status, last.protection) == ("browser", 403, "Cloudflare")
+        win.close()

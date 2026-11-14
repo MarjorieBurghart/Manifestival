@@ -200,5 +200,7 @@
  "browser.offer_title": "Browser-Prüfung",
  "browser.offer": "Die Website {host} akzeptiert nur Webbrowser (Schutz: {protection}).\n\nManifestival kann ein Browserfenster öffnen, um die Prüfung zu bestehen, und dann über diesen Browser herunterladen, in dem von der Website erlaubten Tempo.\n\nPrüfung öffnen?",
  "browser.verify_button": "Prüfung bestehen…",
- "browser.forgotten": "Die Prüfungen und Cookies des integrierten Browsers wurden gelöscht."
+ "browser.forgotten": "Die Prüfungen und Cookies des integrierten Browsers wurden gelöscht.",
+ "browser.blocked": "Die Website {host} lehnt auch diesen integrierten Browser ab: Das ist eine Sperre, keine Prüfung. Schließen Sie dieses Fenster (die Ablehnung steht unter Hilfe › Protokoll der Serverablehnungen).",
+ "refusals.context_browser": "integrierter Browser"
 }

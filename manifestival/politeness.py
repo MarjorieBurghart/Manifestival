@@ -48,7 +48,10 @@ DEFAULT = HostRule()
 RULES = {
     # Limites provisoires annoncées par la BnF (api.bnf.fr) : images IIIF en
     # pleine taille, 5 par minute ; API image .highres, 50 par minute.
-    "gallica.bnf.fr": HostRule(full_interval=12.0, interval=1.0, concurrency=2,
+    # Une seule requête à la fois, et au moins 1,2 s entre deux : la
+    # protection de Gallica bloque les rafales (vignettes) plus volontiers
+    # qu'une requête isolée.
+    "gallica.bnf.fr": HostRule(full_interval=12.0, interval=1.2, concurrency=1,
                                special=((".highres", 1.2),)),
 }
 
@@ -94,16 +97,23 @@ class Pacer:
         return 0.0 if last is None else max(0.0, last + gap - self.clock())
 
     def wait(self, url: str, cancel: threading.Event | None = None) -> bool:
-        """Attend le moment de demander ``url`` ; False si annulé."""
-        delay = self.delay(url)
-        if delay:
+        """Attend le moment de demander ``url`` ; False si annulé. Le
+        créneau est réservé d'abord : deux tâches simultanées vers le même
+        serveur partent l'une après l'autre, jamais ensemble."""
+        gap = rule_for(url).interval_for(url)
+        host = host_of(url)
+        with self.lock:
+            now = self.clock()
+            last = self.last.get(host)
+            start = now if last is None or not gap else max(now, last + gap)
+            self.last[host] = start
+        delay = start - now
+        if delay > 0:
             if cancel is not None:
                 if cancel.wait(delay):
                     return False
             else:
                 self.sleep(delay)
-        with self.lock:
-            self.last[host_of(url)] = self.clock()
         return True
 
     def wrap(self, fetch):
@@ -114,3 +124,8 @@ class Pacer:
                 raise FetchError("cancelled", url)
             return fetch(url, **kwargs)
         return paced
+
+
+# Régulateur commun à toute l'application (manifest, vignettes, zoom,
+# aperçu, téléchargements).
+SHARED = Pacer()

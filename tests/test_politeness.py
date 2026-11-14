@@ -49,7 +49,7 @@ def test_a_block_stops_the_download_without_more_requests(tmp_path):
 
 def test_gallica_rules():
     rule = rule_for(G + "/full/max/0/native.jpg")
-    assert rule.full_interval == 12.0 and rule.full_per_minute == 5 and rule.concurrency == 2
+    assert rule.full_interval == 12.0 and rule.full_per_minute == 5 and rule.concurrency == 1
     assert rule_for("https://example.org/iiif/x/full/max/0/default.jpg").full_interval == 0
     assert is_full_size(G + "/full/full/0/native.jpg")
     assert is_full_size("https://e.org/images/f1.jpg")          # image sans service
@@ -77,8 +77,8 @@ def test_pacer_spaces_full_size_requests_to_the_same_server():
     for _ in range(3):
         pacer.wait(full)
     assert clock.slept == [12.0, 12.0]
-    pacer.wait(G + "/full/!800,800/0/native.jpg")   # 1 s après la précédente
-    assert clock.slept[-1] == 1.0
+    pacer.wait(G + "/full/!800,800/0/native.jpg")   # 1,2 s après la précédente
+    assert clock.slept[-1] == 1.2
     pacer.wait("https://example.org/iiif/x/full/max/0/default.jpg")
     assert len(clock.slept) == 3                     # autre serveur : sans attente
     clock.now += 60
@@ -131,3 +131,20 @@ def test_gallica_falls_back_to_iiif_at_its_own_pace(tmp_path):
     assert calls[1].endswith("/full/full/0/native.jpg")
     # Après .highres, l'image IIIF en pleine taille attend son tour (12 s).
     assert 12.0 in clock.slept
+
+
+def test_simultaneous_requests_to_one_server_take_turns():
+    import time as _time
+    pacer = Pacer()
+    starts = []
+
+    def request():
+        pacer.wait(G + "/full/!240,240/0/native.jpg")
+        starts.append(_time.monotonic())
+    threads = [threading.Thread(target=request) for _ in range(3)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    starts.sort()
+    assert starts[1] - starts[0] >= 1.1 and starts[2] - starts[1] >= 1.1

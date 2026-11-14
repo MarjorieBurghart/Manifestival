@@ -189,5 +189,7 @@
  "browser.offer_title": "ブラウザーの確認",
  "browser.offer": "{host} はウェブブラウザーのみを受け付けます (保護: {protection})。\n\nManifestival はブラウザーのウィンドウを開いて確認を行い、その後このブラウザー経由で、サイトが許可するペースでダウンロードできます。\n\n確認を開きますか?",
  "browser.verify_button": "確認を行う…",
- "browser.forgotten": "内蔵ブラウザーの確認情報と Cookie を消去しました。"
+ "browser.forgotten": "内蔵ブラウザーの確認情報と Cookie を消去しました。",
+ "browser.blocked": "{host} はこの内蔵ブラウザーも拒否しています。確認ではなくブロックです。このウィンドウを閉じてください (拒否は ヘルプ › サーバーの拒否ログ に記録されています)。",
+ "refusals.context_browser": "内蔵ブラウザー"
 }
