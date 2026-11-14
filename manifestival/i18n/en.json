@@ -48,6 +48,7 @@
  "menu.help": "&Help",
  "menu.guide": "How to use",
  "menu.refusals": "Server refusal log…",
+ "menu.forget_browser": "Forget browser verifications",
  "menu.about": "About {app}",
  "meta.untitled": "(untitled)",
  "meta.attribution": "Required statement",
@@ -191,5 +192,13 @@
  "refusals.no_answer": "no answer",
  "refusals.copy": "Copy the log",
  "refusals.clear": "Clear",
- "refusals.copied": "Log copied: paste it into your message."
+ "refusals.copied": "Log copied: paste it into your message.",
+ "browser.title": "Verification — {host}",
+ "browser.intro": "The site {host} asks to check that you are using a web browser. The check usually completes by itself within a few seconds; if an “I am not a robot” box appears, tick it. This window will close by itself when the document appears.",
+ "browser.waiting": "Waiting for the verification…",
+ "browser.ok": "Verification passed.",
+ "browser.offer_title": "Browser verification",
+ "browser.offer": "The site {host} only accepts web browsers (protection: {protection}).\n\nManifestival can open a browser window to pass the check, then download through this browser, at the pace the site allows.\n\nOpen the verification?",
+ "browser.verify_button": "Pass the verification…",
+ "browser.forgotten": "The built-in browser's verifications and cookies have been cleared."
 }

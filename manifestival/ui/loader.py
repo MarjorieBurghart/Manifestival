@@ -117,12 +117,14 @@ class ThumbnailLoader(QObject):
         self.flying: set[int] = set()   # rangs demandés, réponse attendue
         self.visible = (0, -1)
 
-    def start(self, url_lists):
+    def start(self, url_lists, skip=()):
+        """Charge les vignettes de ``url_lists`` (une liste d'adresses par
+        rang), sauf les rangs de ``skip`` (déjà chargés)."""
         self.stop()
         self.cancel = threading.Event()
         self.generation += 1
         self.urls = [list(u) for u in url_lists]
-        self.pending = set(range(len(self.urls)))
+        self.pending = set(range(len(self.urls))) - set(skip)
         self.cursor = 0
         self.flying = set()
         self._pump()

@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 import threading
 
+import shiboken6
+
 from PySide6.QtCore import QLibraryInfo, Qt, QThread, QTranslator, QUrl, Signal
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence
 from PySide6.QtWidgets import (QApplication, QComboBox, QFileDialog, QHBoxLayout, QInputDialog,
@@ -16,9 +18,10 @@ from .. import APP_NAME, __version__, net
 from ..i18n import LANGUAGES
 from ..images import thumbnail_urls
 from ..manifest import collection_entries, is_collection, parse_manifest
-from ..politeness import rule_for
+from ..politeness import host_of, rule_for
 from ..sources import load_json, normalize
 from ..refusals import RefusalLog
+from . import browser
 from .download_dialog import DownloadDialog
 from .refusals_dialog import RefusalsDialog
 from .loader import ThumbnailLoader
@@ -51,11 +54,20 @@ class ManifestThread(QThread):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, tr, settings, fetch=net.fetch, refusals: RefusalLog | None = None):
+    def __init__(self, tr, settings, fetch=net.fetch, refusals: RefusalLog | None = None,
+                 browser_storage=None):
         super().__init__()
         self.tr_ = tr
         self.settings = settings
-        self.fetch = fetch
+        # Navigateur intégré, pour les sites qui l'exigent (Gallica…) : les
+        # requêtes vers ces sites passent par lui, les autres par ``fetch``.
+        self.browser_storage = browser_storage
+        self.browser = None
+        self.verify_dialog = None
+        self._offered_for = None
+        if browser.available() and settings.value(browser.SETTINGS_KEY):
+            self.ensure_browser()
+        self.fetch = browser.routed_fetch(lambda: self.browser, fetch)
         # Journal des refus des serveurs ; sans fichier, le temps de la session.
         self.refusals = refusals if refusals is not None else RefusalLog()
         self.refusals_dialog: RefusalsDialog | None = None
@@ -157,9 +169,9 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.manifest_info = QTextBrowser()
         self.page_info = QTextBrowser()
-        for browser in (self.manifest_info, self.page_info):
-            browser.setOpenExternalLinks(True)
-            browser.setOpenLinks(True)
+        for text_browser in (self.manifest_info, self.page_info):
+            text_browser.setOpenExternalLinks(True)
+            text_browser.setOpenLinks(True)
         self.tabs.addTab(self.manifest_info, "")
         self.tabs.addTab(self.page_info, "")
 
@@ -222,8 +234,11 @@ class MainWindow(QMainWindow):
         self.action_about = QAction(self, triggered=self.show_about)
         self.action_about.setMenuRole(QAction.AboutRole)
         self.action_refusals = QAction(self, triggered=self.show_refusals)
+        self.action_forget_browser = QAction(self, triggered=self.forget_browser)
+        self.action_forget_browser.setVisible(browser.available())
         self.help_menu.addAction(self.action_help)
         self.help_menu.addAction(self.action_refusals)
+        self.help_menu.addAction(self.action_forget_browser)
         self.help_menu.addSeparator()
         self.help_menu.addAction(self.action_about)
 
@@ -256,6 +271,10 @@ class MainWindow(QMainWindow):
         self.help_menu.setTitle(tr("menu.help"))
         self.action_help.setText(tr("menu.guide"))
         self.action_refusals.setText(tr("menu.refusals"))
+        self.action_forget_browser.setText(tr("menu.forget_browser"))
+        if self.verify_dialog is not None and shiboken6.isValid(self.verify_dialog) \
+                and self.verify_dialog.isVisible():
+            self.verify_dialog.retranslate()
         if self.refusals_dialog is not None:
             self.refusals_dialog.retranslate()
         self.action_about.setText(tr("menu.about", app=APP_NAME))
@@ -334,6 +353,10 @@ class MainWindow(QMainWindow):
         self.settings.setValue("window/splitter", self.splitter.saveState())
         self.settings.setValue("view/thumb", self.view.thumb_delegate.box)
         self.loader.shutdown()
+        if self.verify_dialog is not None and shiboken6.isValid(self.verify_dialog):
+            self.verify_dialog.close()
+        if self.browser is not None:
+            self.browser.shutdown()
         if self.manifest_thread is not None:
             self.manifest_thread.cancel.set()
             self.manifest_thread.wait(2000)
@@ -403,6 +426,9 @@ class MainWindow(QMainWindow):
             return
         source = normalize(self.manifest_thread.source) if self.manifest_thread is not None else ""
         self.refusals.record(exc, "manifest", source)
+        if self.offer_verification(exc, source, lambda: self.load(source)):
+            self.statusBar().clearMessage()
+            return
         self.statusBar().clearMessage()
         QMessageBox.warning(self, APP_NAME, self.tr_("main.load_failed") + "\n\n" + error_text(exc, self.tr_))
 
@@ -455,8 +481,13 @@ class MainWindow(QMainWindow):
         self._update_counts()
 
     def _thumbnails_blocked(self, error):
-        self.refusals.record(error, "thumbnails", self.manifest.source if self.manifest else "")
+        source = self.manifest.source if self.manifest else ""
+        self.refusals.record(error, "thumbnails", source)
         self.blocked_message = error_text(error, self.tr_)
+        if self._offered_for != source and source:
+            self._offered_for = source      # une seule proposition par document
+            if self.offer_verification(error, source, self.retry_thumbnails):
+                self.blocked_message = ""
         self._update_counts()
 
     def _current_changed(self, current, previous):
@@ -514,8 +545,13 @@ class MainWindow(QMainWindow):
                 return
             old.deleteLater()
         pages = [self.model.pages[r] for r in rows]
+        verify = None
+        if browser.available():
+            source = self.manifest.source
+            verify = lambda error: self.offer_verification(error, source, None, ask=False)  # noqa: E731
         self.download_dialog = DownloadDialog(self.tr_, self.settings, self.manifest, pages,
-                                              self, fetch=self.fetch, refusals=self.refusals)
+                                              self, fetch=self.fetch, refusals=self.refusals,
+                                              verify=verify)
         self.download_dialog.show()
 
     def show_help(self):
@@ -524,6 +560,59 @@ class MainWindow(QMainWindow):
         box.setTextFormat(Qt.RichText)
         box.setText(self.tr_("help.text"))
         box.exec()
+
+    # ------------------------------------------------------------ navigateur intégré
+    def ensure_browser(self):
+        if self.browser is None and browser.available():
+            self.browser = browser.BrowserSession(self.browser_storage, self.settings, self)
+        return self.browser
+
+    def offer_verification(self, error, url, then, ask=True) -> bool:
+        """Si un site a répondu par une protection anti-robots, propose de
+        passer sa vérification dans le navigateur intégré, puis appelle
+        ``then``. Rend True si la vérification est ouverte."""
+        if not (browser.available() and isinstance(error, net.FetchError) and error.kind == "blocked" and url):
+            return False
+        if self.verify_dialog is not None and shiboken6.isValid(self.verify_dialog) \
+                and self.verify_dialog.isVisible():
+            self.verify_dialog.raise_()
+            return True
+        host = host_of(url)
+        if ask:
+            answer = QMessageBox.question(
+                self, self.tr_("browser.offer_title"),
+                self.tr_("browser.offer", host=host, protection=error.protection or "?"))
+            if answer != QMessageBox.Yes:
+                return False
+        session = self.ensure_browser()
+        self.verify_dialog = browser.VerifyDialog(self.tr_, session, url, error.protection, self)
+        self.verify_dialog.destroyed.connect(self._verify_dialog_gone)
+        if then is not None:
+            self.verify_dialog.verified.connect(lambda _host: then())
+        self.verify_dialog.start()
+        return True
+
+    def _verify_dialog_gone(self, *args):
+        self.verify_dialog = None
+
+    def retry_thumbnails(self):
+        """Vignettes manquantes demandées de nouveau (après une vérification)."""
+        if self.manifest is None:
+            return
+        self.blocked_message = ""
+        self.model.failed.clear()
+        urls = [thumbnail_urls(p, LOAD_BOX) for p in self.manifest.pages]
+        self.loader.start(urls, skip=set(self.model.thumbs))
+        self.loader.set_visible(*self.view.visible_rows())
+        self.view.viewport().update()
+        self._update_counts()
+
+    def forget_browser(self):
+        if self.browser is not None:
+            self.browser.forget()
+        else:
+            self.settings.remove(browser.SETTINGS_KEY)
+        self.statusBar().showMessage(self.tr_("browser.forgotten"), 6000)
 
     def show_refusals(self):
         if self.refusals_dialog is None:

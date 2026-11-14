@@ -75,9 +75,11 @@ def _default_folder() -> str:
 
 
 class DownloadDialog(QDialog):
-    def __init__(self, tr, settings, manifest, pages, parent=None, fetch=None, refusals=None):
+    def __init__(self, tr, settings, manifest, pages, parent=None, fetch=None, refusals=None, verify=None):
         super().__init__(parent)
         self.refusals = refusals
+        self.verify = verify        # passe la vérification d'un site dans le navigateur intégré
+        self.blocked_error = None
         self.tr_ = tr
         self.settings = settings
         self.manifest = manifest
@@ -190,6 +192,9 @@ class DownloadDialog(QDialog):
         self.cancel_button.setVisible(False)
         self.retry_button = QPushButton()
         self.retry_button.setVisible(False)
+        self.verify_button = QPushButton()
+        self.verify_button.setVisible(False)
+        self.verify_button.clicked.connect(self._verify)
         self.open_button = QPushButton()
         self.open_button.setVisible(False)
         self.close_button = QPushButton()
@@ -202,6 +207,7 @@ class DownloadDialog(QDialog):
             button.setAutoDefault(False)
         buttons = QHBoxLayout()
         buttons.addWidget(self.open_button)
+        buttons.addWidget(self.verify_button)
         buttons.addWidget(self.retry_button)
         buttons.addStretch(1)
         buttons.addWidget(self.cancel_button)
@@ -276,6 +282,7 @@ class DownloadDialog(QDialog):
         self.start_button.setText(tr("download.start", n=len(self.pages)))
         self.cancel_button.setText(tr("button.cancel"))
         self.retry_button.setText(tr("download.retry"))
+        self.verify_button.setText(tr("browser.verify_button"))
         self.open_button.setText(tr("download.open_folder"))
         self.close_button.setText(tr("button.close"))
         self._update_preview()
@@ -437,6 +444,7 @@ class DownloadDialog(QDialog):
         if running:
             self.open_button.setVisible(False)
             self.retry_button.setVisible(False)
+            self.verify_button.setVisible(False)
             self.details.setVisible(False)
 
     def start(self, jobs=None):
@@ -535,8 +543,15 @@ class DownloadDialog(QDialog):
                 f"#{r.page.index} {r.page.label} — {error_text(r.error, self.tr_)}" for r in failures))
             self.details.setVisible(True)
         self.retry_button.setVisible(bool(failures) or counts["cancelled"] > 0)
+        self.blocked_error = next((r.error for r in failures
+                                   if getattr(r.error, "kind", "") == "blocked"), None)
+        self.verify_button.setVisible(self.blocked_error is not None and self.verify is not None)
         self.open_button.setVisible(True)
         self.start_button.setText(self.tr_("download.start_again", n=len(self.pages)))
+
+    def _verify(self):
+        if self.verify is not None and self.blocked_error is not None:
+            self.verify(self.blocked_error)
 
     def retry_failed(self):
         jobs = [(r.page, r.stem) for r in self.results if r.status in ("failed", "cancelled")]

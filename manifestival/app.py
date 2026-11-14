@@ -64,6 +64,11 @@ def start(argv=None, settings=None):
     from .i18n import Translator, system_language
     from .ui.main_window import MainWindow
 
+    from .ui import browser
+    if QApplication.instance() is None and browser.available():
+        # Qt WebEngine (navigateur intégré) le demande avant l'application.
+        from PySide6.QtCore import QCoreApplication, Qt
+        QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     app = QApplication.instance() or QApplication(argv)
     if ICON.is_file():
         from PySide6.QtGui import QIcon
@@ -78,7 +83,8 @@ def start(argv=None, settings=None):
     from .refusals import RefusalLog
     data_dir = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
     refusals = RefusalLog(Path(data_dir) / "refusals.json" if data_dir else None)
-    window = MainWindow(Translator(language), settings, refusals=refusals)
+    window = MainWindow(Translator(language), settings, refusals=refusals,
+                        browser_storage=Path(data_dir) / "browser" if data_dir else None)
     window.show()
     window.raise_()
     window.activateWindow()

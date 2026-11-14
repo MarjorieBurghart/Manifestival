@@ -44,6 +44,7 @@
  "menu.help": "ヘルプ(&H)",
  "menu.guide": "使い方",
  "menu.refusals": "サーバーの拒否ログ…",
+ "menu.forget_browser": "ブラウザーの確認を消去",
  "menu.about": "{app} について",
  "meta.untitled": "(無題)",
  "meta.attribution": "必須表示",
@@ -180,5 +181,13 @@
  "refusals.no_answer": "応答なし",
  "refusals.copy": "ログをコピー",
  "refusals.clear": "消去",
- "refusals.copied": "ログをコピーしました。メッセージに貼り付けてください。"
+ "refusals.copied": "ログをコピーしました。メッセージに貼り付けてください。",
+ "browser.title": "確認 — {host}",
+ "browser.intro": "{host} は、ウェブブラウザーを使用していることの確認を求めています。確認は通常数秒で自動的に終わります。「私はロボットではありません」のチェックボックスが表示されたら、チェックしてください。資料が表示されると、このウィンドウは自動的に閉じます。",
+ "browser.waiting": "確認を待っています…",
+ "browser.ok": "確認が完了しました。",
+ "browser.offer_title": "ブラウザーの確認",
+ "browser.offer": "{host} はウェブブラウザーのみを受け付けます (保護: {protection})。\n\nManifestival はブラウザーのウィンドウを開いて確認を行い、その後このブラウザー経由で、サイトが許可するペースでダウンロードできます。\n\n確認を開きますか?",
+ "browser.verify_button": "確認を行う…",
+ "browser.forgotten": "内蔵ブラウザーの確認情報と Cookie を消去しました。"
 }

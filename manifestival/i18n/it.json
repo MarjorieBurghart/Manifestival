@@ -48,6 +48,7 @@
  "menu.help": "&Aiuto",
  "menu.guide": "Istruzioni",
  "menu.refusals": "Registro dei rifiuti dei server…",
+ "menu.forget_browser": "Dimentica le verifiche del browser",
  "menu.about": "Informazioni su {app}",
  "meta.untitled": "(senza titolo)",
  "meta.attribution": "Dicitura obbligatoria",
@@ -191,5 +192,13 @@
  "refusals.no_answer": "nessuna risposta",
  "refusals.copy": "Copia il registro",
  "refusals.clear": "Cancella",
- "refusals.copied": "Registro copiato: incollalo nel tuo messaggio."
+ "refusals.copied": "Registro copiato: incollalo nel tuo messaggio.",
+ "browser.title": "Verifica — {host}",
+ "browser.intro": "Il sito {host} chiede di verificare che stai usando un browser web. Di solito la verifica avviene da sola in pochi secondi; se compare la casella «Non sono un robot», spuntala. Questa finestra si chiuderà da sola quando il documento sarà visualizzato.",
+ "browser.waiting": "In attesa della verifica…",
+ "browser.ok": "Verifica riuscita.",
+ "browser.offer_title": "Verifica del browser",
+ "browser.offer": "Il sito {host} accetta solo browser web (protezione: {protection}).\n\nManifestival può aprire una finestra del browser per superare la verifica, poi scaricare tramite questo browser, al ritmo consentito dal sito.\n\nAprire la verifica?",
+ "browser.verify_button": "Supera la verifica…",
+ "browser.forgotten": "Le verifiche e i cookie del browser integrato sono stati cancellati."
 }

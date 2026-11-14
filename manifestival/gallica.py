@@ -16,7 +16,9 @@ import re
 
 HOST = "gallica.bnf.fr"
 _ARK = r"ark:/12148/([A-Za-z0-9]+)"
-_PAGE = re.compile(r"^https?://gallica\.bnf\.fr/(?:services/)?(?:iiif/)?" + _ARK + r"(?:[/.?#].*)?$")
+# Toute page de Gallica qui désigne un document : …/ark:/12148/<doc>,
+# …/iiif/ark:/…, la visionneuse …/view3if/ga/ark:/…, etc.
+_PAGE = re.compile(r"^https?://gallica\.bnf\.fr/(?:[\w.-]+/)*" + _ARK + r"(?:[/.?#].*)?$")
 _IIIF_IMAGE = re.compile(r"^https?://gallica\.bnf\.fr/iiif/" + _ARK + r"/f(\d+)(?:/.*)?$")
 
 

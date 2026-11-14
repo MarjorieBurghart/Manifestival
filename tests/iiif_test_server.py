@@ -18,6 +18,12 @@ if str(ROOT) not in sys.path:
 FAKE_JPEG = b"\xff\xd8\xff\xe0" + bytes(32) + b"\xff\xd9"
 
 
+CHALLENGE_PAGE = b"""<!DOCTYPE html><html><head><title>Just a moment...</title></head>
+<body><p>Checking your browser.</p>
+<script>document.cookie = "mf_clearance=ok; path=/"; setTimeout(function () { location.reload(); }, 300);</script>
+</body></html>"""
+
+
 def real_jpeg(width: int = 60, height: int = 90, color: int = 0x8A6D3B) -> bytes:
     """Vraie image JPEG (Qt), pour les vignettes de l'interface."""
     from PySide6.QtCore import QBuffer, QByteArray, QIODevice
@@ -139,6 +145,8 @@ class IIIFServer:
         annonce-t-il des tuiles (sinon : niveau 0 sans tuiles)."""
         self.image_bytes = image_bytes
         self.cloudflare = False   # True : toute image refusée comme par Cloudflare
+        self.challenge = False    # True : page de vérification sans le cookie posé par JavaScript
+        self.challenged: list[str] = []
         self.delay = 0.0          # secondes avant de répondre pour une image
         self.source = source
         self.tiles = tiles
@@ -155,6 +163,12 @@ class IIIFServer:
                 with server.lock:
                     server.requests.append(self.path)
                 base = server.base
+                if server.challenge and "mf_clearance=ok" not in (self.headers.get("Cookie") or ""):
+                    # Vérification à la Cloudflare : une page que seul un
+                    # navigateur passe (JavaScript qui pose un cookie et recharge).
+                    with server.lock:
+                        server.challenged.append(self.path)
+                    return self._send(200, CHALLENGE_PAGE, "text/html; charset=utf-8")
                 routes = {"/manifest3.json": lambda: manifest_v3(base),
                           "/manifest2.json": lambda: manifest_v2(base),
                           "/collection.json": lambda: collection(base)}

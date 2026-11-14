@@ -25,6 +25,8 @@ MANIFEST = f"https://gallica.bnf.fr/iiif/ark:/12148/{DOC}/manifest.json"
     f"gallica.bnf.fr/ark:/12148/{DOC}/f1.highres",
     f"http://gallica.bnf.fr/ark:/12148/{DOC}.texteImage",
     f"https://gallica.bnf.fr/iiif/ark:/12148/{DOC}/f1/full/full/0/native.jpg",
+    f"https://gallica.bnf.fr/view3if/ga/ark:/12148/{DOC}",          # visionneuse
+    f"https://gallica.bnf.fr/view3if/ga/ark:/12148/{DOC}/f5.item",
 ])
 def test_gallica_pages_lead_to_the_manifest(address):
     assert normalize(address) == MANIFEST

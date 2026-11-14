@@ -48,6 +48,7 @@
  "menu.help": "&Hilfe",
  "menu.guide": "Anleitung",
  "menu.refusals": "Protokoll der Serverablehnungen…",
+ "menu.forget_browser": "Browser-Prüfungen vergessen",
  "menu.about": "Über {app}",
  "meta.untitled": "(ohne Titel)",
  "meta.attribution": "Pflichtangabe",
@@ -191,5 +192,13 @@
  "refusals.no_answer": "keine Antwort",
  "refusals.copy": "Protokoll kopieren",
  "refusals.clear": "Löschen",
- "refusals.copied": "Protokoll kopiert: Fügen Sie es in Ihre Nachricht ein."
+ "refusals.copied": "Protokoll kopiert: Fügen Sie es in Ihre Nachricht ein.",
+ "browser.title": "Prüfung — {host}",
+ "browser.intro": "Die Website {host} möchte prüfen, ob Sie einen Webbrowser verwenden. Die Prüfung erfolgt meist von selbst in wenigen Sekunden; erscheint ein Kästchen „Ich bin kein Roboter“, haken Sie es an. Dieses Fenster schließt sich von selbst, sobald das Dokument angezeigt wird.",
+ "browser.waiting": "Warten auf die Prüfung…",
+ "browser.ok": "Prüfung bestanden.",
+ "browser.offer_title": "Browser-Prüfung",
+ "browser.offer": "Die Website {host} akzeptiert nur Webbrowser (Schutz: {protection}).\n\nManifestival kann ein Browserfenster öffnen, um die Prüfung zu bestehen, und dann über diesen Browser herunterladen, in dem von der Website erlaubten Tempo.\n\nPrüfung öffnen?",
+ "browser.verify_button": "Prüfung bestehen…",
+ "browser.forgotten": "Die Prüfungen und Cookies des integrierten Browsers wurden gelöscht."
 }

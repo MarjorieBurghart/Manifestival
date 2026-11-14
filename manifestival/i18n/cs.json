@@ -52,6 +52,7 @@
  "menu.help": "&Nápověda",
  "menu.guide": "Návod",
  "menu.refusals": "Záznam odmítnutí serverů…",
+ "menu.forget_browser": "Zapomenout ověření prohlížeče",
  "menu.about": "O aplikaci {app}",
  "meta.untitled": "(bez názvu)",
  "meta.attribution": "Povinný údaj",
@@ -202,5 +203,13 @@
  "refusals.no_answer": "bez odpovědi",
  "refusals.copy": "Kopírovat záznam",
  "refusals.clear": "Vymazat",
- "refusals.copied": "Záznam zkopírován: vložte jej do zprávy."
+ "refusals.copied": "Záznam zkopírován: vložte jej do zprávy.",
+ "browser.title": "Ověření — {host}",
+ "browser.intro": "Web {host} chce ověřit, že používáte webový prohlížeč. Ověření obvykle proběhne samo během několika sekund; pokud se objeví políčko „Nejsem robot“, zaškrtněte je. Toto okno se samo zavře, jakmile se dokument zobrazí.",
+ "browser.waiting": "Čekání na ověření…",
+ "browser.ok": "Ověření proběhlo.",
+ "browser.offer_title": "Ověření prohlížeče",
+ "browser.offer": "Web {host} přijímá jen webové prohlížeče (ochrana: {protection}).\n\nManifestival může otevřít okno prohlížeče, v němž ověření proběhne, a poté stahovat přes tento prohlížeč tempem, které web povoluje.\n\nOtevřít ověření?",
+ "browser.verify_button": "Projít ověřením…",
+ "browser.forgotten": "Ověření a cookies vestavěného prohlížeče byly vymazány."
 }

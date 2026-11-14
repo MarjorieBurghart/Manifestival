@@ -34,6 +34,7 @@ def settings(tmp_path):
 def window(qtbot, settings, monkeypatch):
     # Pas de boîte modale bloquante pendant les tests.
     monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: QMessageBox.Ok)
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.No)
     win = MainWindow(Translator("fr"), settings)
     qtbot.addWidget(win)
     win.resize(1000, 700)
@@ -242,6 +243,7 @@ def test_tile_size_slider(qtbot, window, server):
 @pytest.mark.parametrize("tiles", [True, False])
 def test_preview_zooms_to_full_resolution(qtbot, settings, monkeypatch, tiles):
     monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: QMessageBox.Ok)
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.No)
     with IIIFServer(source=page_image(800, 1200), tiles=tiles) as server:
         win = MainWindow(Translator("fr"), settings)
         qtbot.addWidget(win)
@@ -372,6 +374,7 @@ def test_refusals_are_logged_and_shown(qtbot, settings, monkeypatch, tmp_path):
     from manifestival.refusals import RefusalLog
     warnings = []
     monkeypatch.setattr(QMessageBox, "warning", lambda parent, title, text, *a: warnings.append(text))
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.No)
     log = RefusalLog(tmp_path / "refusals.json")
     win = MainWindow(Translator("fr"), settings, refusals=log)
     qtbot.addWidget(win)

@@ -48,6 +48,7 @@
  "menu.help": "&Aide",
  "menu.guide": "Mode d'emploi",
  "menu.refusals": "Journal des refus des serveurs…",
+ "menu.forget_browser": "Oublier les vérifications du navigateur",
  "menu.about": "À propos de {app}",
  "meta.untitled": "(sans titre)",
  "meta.attribution": "Mention obligatoire",
@@ -191,5 +192,13 @@
  "refusals.no_answer": "pas de réponse",
  "refusals.copy": "Copier le journal",
  "refusals.clear": "Effacer",
- "refusals.copied": "Journal copié : collez-le dans votre message."
+ "refusals.copied": "Journal copié : collez-le dans votre message.",
+ "browser.title": "Vérification — {host}",
+ "browser.intro": "Le site {host} demande de vérifier que vous utilisez un navigateur web. La vérification se fait en général toute seule, en quelques secondes ; si une case « Je ne suis pas un robot » apparaît, cochez-la. Cette fenêtre se fermera d'elle-même quand le document s'affichera.",
+ "browser.waiting": "En attente de la vérification…",
+ "browser.ok": "Vérification réussie.",
+ "browser.offer_title": "Vérification du navigateur",
+ "browser.offer": "Le site {host} n'accepte que les navigateurs web (protection : {protection}).\n\nManifestival peut ouvrir une fenêtre de navigateur pour passer la vérification, puis télécharger par ce navigateur, au rythme permis par le site.\n\nOuvrir la vérification ?",
+ "browser.verify_button": "Passer la vérification…",
+ "browser.forgotten": "Les vérifications et les cookies du navigateur intégré ont été effacés."
 }
