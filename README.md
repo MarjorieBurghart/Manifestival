@@ -102,7 +102,16 @@ depuis un autre réseau ; enregistrer le manifest depuis le navigateur et
 l'ouvrir avec *Ouvrir un fichier…* ; ou écrire à la bibliothèque (pour
 Gallica : gallica@bnf.fr).
 
-## Installation
+## Version prête à l'emploi
+
+Sans Python à installer : une archive pour **Windows**, **macOS** (Apple
+Silicon ou Intel) et **Linux** est jointe à chaque version publiée, page
+[Releases](https://github.com/MarjorieBurghart/Manifestival/releases).
+Décompressez-la et lancez Manifestival. Le `LISEZMOI.txt` de l'archive
+explique le premier lancement : Manifestival n'est pas signé, et Windows et
+macOS demandent donc une confirmation.
+
+## Installation avec Python
 
 Il faut **Python 3.10 ou plus récent** (https://www.python.org) et la
 bibliothèque **PySide6**.
@@ -159,6 +168,8 @@ manifestival/
   politeness.py             rythme des requêtes selon les serveurs (Gallica…)
   i18n.py, i18n/*.json      traductions (pluriels selon chaque langue)
   ui/                       interface PySide6
+  self_test.py              auto-test de la version construite
+packaging/                  version prête à l'emploi (PyInstaller, build.py)
 tests/                      tests (pytest, pytest-qt) avec un serveur IIIF local
 ```
 
@@ -169,6 +180,38 @@ python -m pytest -q
 ```
 
 Sous Linux sans écran, lancer les tests avec `QT_QPA_PLATFORM=offscreen`.
+Les versions avec lesquelles les tests passent sont fixées dans
+`constraints.txt` : `python -m pip install -r requirements-dev.txt -c constraints.txt`.
+
+### Intégration continue (GitHub Actions)
+
+- **Tests** (`.github/workflows/tests.yml`) : à chaque envoi et pull request,
+  ruff, compilation, puis toute la suite sous Windows, macOS et Linux
+  (Python 3.12 ; 3.10 et 3.13 sous Linux).
+- **Binaries** (`.github/workflows/binaries.yml`) : les archives prêtes à
+  l'emploi. Quand une release est publiée sur GitHub, elles y sont jointes
+  automatiquement, avec leurs empreintes SHA-256. On peut aussi les
+  construire à la main (Actions › Binaries › Run workflow) : elles sont alors
+  téléchargeables dans le résumé du workflow. Une modification de la recette
+  (`packaging/`) déclenche une construction de vérification.
+
+### Construire une version prête à l'emploi
+
+```bash
+python -m pip install -r requirements.txt -r packaging/requirements.txt -c constraints.txt
+python packaging/build.py
+```
+
+PyInstaller construit l'application (un dossier, avec les bibliothèques Qt
+en fichiers distincts). L'exécutable est vérifié par
+`Manifestival --self-test` (traductions, manifest d'essai, certificats HTTPS,
+formats d'image, icône, ouverture de la fenêtre) avant d'être zippé dans
+`build/binaries/Manifestival-<version>-<plateforme>.zip`.
+
+Pour publier une version :
+1. mettre à jour `__version__` dans `manifestival/__init__.py` ;
+2. créer une release GitHub avec le tag `v<version>` ;
+3. le workflow Binaries y joint les quatre archives.
 
 Pour ajouter un texte à l'interface : ajouter la clé dans **les sept** fichiers
 `manifestival/i18n/*.json` (les tests le vérifient). Un texte qui dépend

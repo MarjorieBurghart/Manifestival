@@ -1,0 +1,64 @@
+name: Tests
+
+# À chaque envoi et pull request : vérification du code (ruff), compilation
+# de tous les modules, puis toute la suite des tests sous Windows, macOS et
+# Linux, l'interface pilotée sans écran (QT_QPA_PLATFORM=offscreen).
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    # Un test bloqué ne retient pas le job jusqu'à la limite de GitHub.
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.12"]
+        include:
+          # La plus ancienne version annoncée (pyproject.toml) et une récente.
+          - os: ubuntu-latest
+            python: "3.10"
+          - os: ubuntu-latest
+            python: "3.13"
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            requirements-dev.txt
+            constraints.txt
+
+      - name: Bibliothèques système pour Qt (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3 libglib2.0-0
+
+      - name: Dépendances
+        run: python -m pip install -r requirements-dev.txt -c constraints.txt
+
+      - name: Vérification du code (ruff)
+        run: python -m ruff check .
+
+      - name: Compilation de tous les modules
+        run: python -m compileall -q manifestival tests packaging lancer_manifestival.py
+
+      - name: Tests
+        # -rfE : les tests en échec nommés en fin de passe ; pile d'appels
+        # affichée si un test dépasse 5 minutes.
+        run: python -m pytest -q --disable-warnings -rfE -o faulthandler_timeout=300

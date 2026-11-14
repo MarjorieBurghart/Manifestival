@@ -18,7 +18,7 @@ from manifestival.manifest import Page
 
 @pytest.fixture
 def bad():
-    with BadServer(slow_delay=1.0, trickle_delay=0.2) as server:
+    with BadServer(slow_delay=0.4, trickle_delay=0.2) as server:
         yield server
 
 
@@ -66,7 +66,7 @@ def test_cancel_works_even_when_the_server_says_nothing(bad):
 
 def test_slow_but_working_server_is_waited_for(bad):
     reply, elapsed = timed(lambda: net.fetch(bad.base + "/slow", timeout=3, deadline=5))
-    assert isinstance(reply, net.Response) and elapsed >= 0.9
+    assert isinstance(reply, net.Response) and elapsed >= 0.35
 
 
 def test_progress_is_reported(bad):

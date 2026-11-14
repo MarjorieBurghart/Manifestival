@@ -16,7 +16,7 @@ manifestival = "manifestival.app:main"
 include = ["manifestival*"]
 
 [tool.setuptools.package-data]
-manifestival = ["i18n/*.json"]
+manifestival = ["i18n/*.json", "resources/*.png"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
