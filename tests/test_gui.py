@@ -182,6 +182,9 @@ def test_download_failures_can_be_retried(qtbot, window, server, tmp_path):
     window.settings.setValue("download/index", False)
     window.open_download()
     dialog = window.download_dialog
+    # Vignettes chargées d'abord : sinon le refus programmé pourrait servir
+    # à une vignette plutôt qu'au téléchargement.
+    qtbot.waitUntil(lambda: window.loader.remaining() == 0, timeout=10000)
     server.failures["img2"] = [403]
     dialog.start()
     qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
