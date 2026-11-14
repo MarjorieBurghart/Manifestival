@@ -110,7 +110,7 @@ class ThumbnailLoader(QObject):
         self.urls: list[list[str]] = []
         self.pending: set[int] = set()
         self.cursor = 0
-        self.in_flight = 0
+        self.flying: set[int] = set()   # rangs demandés, réponse attendue
         self.visible = (0, -1)
 
     def start(self, url_lists):
@@ -120,13 +120,13 @@ class ThumbnailLoader(QObject):
         self.urls = [list(u) for u in url_lists]
         self.pending = set(range(len(self.urls)))
         self.cursor = 0
-        self.in_flight = 0
+        self.flying = set()
         self._pump()
 
     def stop(self):
         self.cancel.set()
         self.pending.clear()
-        self.in_flight = 0
+        self.flying = set()
 
     def shutdown(self, wait_ms: int = 3000):
         self.stop()
@@ -138,7 +138,7 @@ class ThumbnailLoader(QObject):
         self._pump()
 
     def remaining(self) -> int:
-        return len(self.pending) + self.in_flight
+        return len(self.pending) + len(self.flying)
 
     def _next(self):
         first, last = self.visible
@@ -154,12 +154,12 @@ class ThumbnailLoader(QObject):
         return None
 
     def _pump(self):
-        while self.in_flight < self.concurrency and self.pending:
+        while len(self.flying) < self.concurrency and self.pending:
             row = self._next()
             if row is None:
                 break
             self.pending.discard(row)
-            self.in_flight += 1
+            self.flying.add(row)
             self.pool.start(ImageTask((self.generation, row), self.urls[row], self.box,
                                       self.cancel, self.signals, self.fetch))
 
@@ -169,13 +169,15 @@ class ThumbnailLoader(QObject):
             return
         if isinstance(error, net.FetchError) and error.kind == "blocked":
             # Protection anti-robots : on arrête de solliciter le serveur.
-            self.in_flight = 0   # les autres requêtes en cours sont abandonnées
-            pending, self.pending = sorted(self.pending), set()
+            # Les requêtes en cours sont abandonnées : leurs vignettes aussi
+            # sont en échec, comme celles qui attendaient leur tour.
+            rows = sorted(self.pending | self.flying | {row})
+            self.pending, self.flying = set(), set()
             self.cancel.set()
-            for r in [row, *pending]:
+            for r in rows:
                 self.loaded.emit(r, b"")
             self.blocked.emit(error)
             return
-        self.in_flight = max(0, self.in_flight - 1)
+        self.flying.discard(row)
         self.loaded.emit(row, data)
         self._pump()

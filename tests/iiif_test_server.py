@@ -7,6 +7,7 @@ import json
 import re
 import sys
 import threading
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -138,6 +139,7 @@ class IIIFServer:
         annonce-t-il des tuiles (sinon : niveau 0 sans tuiles)."""
         self.image_bytes = image_bytes
         self.cloudflare = False   # True : toute image refusée comme par Cloudflare
+        self.delay = 0.0          # secondes avant de répondre pour une image
         self.source = source
         self.tiles = tiles
         self.failures: dict[str, list[int]] = {}
@@ -168,6 +170,8 @@ class IIIFServer:
                         code = queue.pop(0) if queue else None
                     if code:
                         return self._send(code, b"error", "text/plain", {"Retry-After": "0"})
+                    if server.delay:
+                        time.sleep(server.delay)
                     if server.cloudflare:  # protection anti-robots simulée
                         return self._send(403, b"<title>Attention Required! | Cloudflare</title>",
                                           "text/html", {"Server": "cloudflare", "CF-RAY": "0-TEST"})
