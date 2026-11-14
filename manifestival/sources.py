@@ -7,7 +7,7 @@ from urllib.parse import unquote, urlparse
 import json
 import re
 
-from . import net
+from . import gallica, net
 
 MAX_MANIFEST_BYTES = 100 * 1024 * 1024
 
@@ -23,14 +23,15 @@ class SourceError(Exception):
 
 def normalize(source: str) -> str:
     """Adresse nettoyée : espaces retirés, « https:// » ajouté à une adresse
-    web tapée sans (``gallica.bnf.fr/…``)."""
+    web tapée sans (``gallica.bnf.fr/…``) ; la page d'un document de Gallica
+    devient l'adresse de son manifest IIIF."""
     s = (source or "").strip().strip('"').strip("'").strip()
     if re.match(r"^[a-z][a-z0-9+.-]*://", s, re.I) or not s:
-        return s
+        return gallica.manifest_url(s) or s
     if Path(s).expanduser().exists() or re.match(r"^[A-Za-z]:[\\/]", s) or s.startswith(("/", "\\", "~", ".")):
         return s
     if re.match(r"^[\w-]+(\.[\w-]+)+(:\d+)?(/|$)", s):
-        return "https://" + s
+        return gallica.manifest_url("https://" + s) or "https://" + s
     return s
 
 
@@ -59,4 +60,8 @@ def load_json(source: str, *, cancel=None, fetch=net.fetch):
     try:
         return json.loads(data.decode("utf-8-sig"))
     except (UnicodeDecodeError, ValueError) as exc:
+        # Une page de vérification anti-robots servie à la place du JSON.
+        protection = net.protection_of(None, data) if is_web(s) else ""
+        if protection:
+            raise net.FetchError("blocked", s, 200, protection=protection) from None
         raise SourceError("not_json", str(exc)) from None

@@ -18,7 +18,9 @@ from ..images import thumbnail_urls
 from ..manifest import collection_entries, is_collection, parse_manifest
 from ..politeness import rule_for
 from ..sources import load_json, normalize
+from ..refusals import RefusalLog
 from .download_dialog import DownloadDialog
+from .refusals_dialog import RefusalsDialog
 from .loader import ThumbnailLoader
 from .preview import PreviewDialog
 from .texts import error_text, manifest_html, page_html
@@ -49,11 +51,14 @@ class ManifestThread(QThread):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, tr, settings, fetch=net.fetch):
+    def __init__(self, tr, settings, fetch=net.fetch, refusals: RefusalLog | None = None):
         super().__init__()
         self.tr_ = tr
         self.settings = settings
         self.fetch = fetch
+        # Journal des refus des serveurs ; sans fichier, le temps de la session.
+        self.refusals = refusals if refusals is not None else RefusalLog()
+        self.refusals_dialog: RefusalsDialog | None = None
         self.manifest = None
         self.manifest_thread: ManifestThread | None = None
         self.pending_source: str | None = None
@@ -216,7 +221,10 @@ class MainWindow(QMainWindow):
         self.action_help.setShortcut(QKeySequence.HelpContents)
         self.action_about = QAction(self, triggered=self.show_about)
         self.action_about.setMenuRole(QAction.AboutRole)
+        self.action_refusals = QAction(self, triggered=self.show_refusals)
         self.help_menu.addAction(self.action_help)
+        self.help_menu.addAction(self.action_refusals)
+        self.help_menu.addSeparator()
         self.help_menu.addAction(self.action_about)
 
     def retranslate(self):
@@ -247,6 +255,9 @@ class MainWindow(QMainWindow):
         self.language_actions[tr.lang].setChecked(True)
         self.help_menu.setTitle(tr("menu.help"))
         self.action_help.setText(tr("menu.guide"))
+        self.action_refusals.setText(tr("menu.refusals"))
+        if self.refusals_dialog is not None:
+            self.refusals_dialog.retranslate()
         self.action_about.setText(tr("menu.about", app=APP_NAME))
         self.view.thumb_delegate.failed_text = "✕"
         self._update_counts()
@@ -390,6 +401,8 @@ class MainWindow(QMainWindow):
         if getattr(exc, "kind", "") == "cancelled":
             self.statusBar().showMessage(self.tr_("main.loading_cancelled"), 5000)
             return
+        source = normalize(self.manifest_thread.source) if self.manifest_thread is not None else ""
+        self.refusals.record(exc, "manifest", source)
         self.statusBar().clearMessage()
         QMessageBox.warning(self, APP_NAME, self.tr_("main.load_failed") + "\n\n" + error_text(exc, self.tr_))
 
@@ -442,6 +455,7 @@ class MainWindow(QMainWindow):
         self._update_counts()
 
     def _thumbnails_blocked(self, error):
+        self.refusals.record(error, "thumbnails", self.manifest.source if self.manifest else "")
         self.blocked_message = error_text(error, self.tr_)
         self._update_counts()
 
@@ -501,7 +515,7 @@ class MainWindow(QMainWindow):
             old.deleteLater()
         pages = [self.model.pages[r] for r in rows]
         self.download_dialog = DownloadDialog(self.tr_, self.settings, self.manifest, pages,
-                                              self, fetch=self.fetch)
+                                              self, fetch=self.fetch, refusals=self.refusals)
         self.download_dialog.show()
 
     def show_help(self):
@@ -510,6 +524,13 @@ class MainWindow(QMainWindow):
         box.setTextFormat(Qt.RichText)
         box.setText(self.tr_("help.text"))
         box.exec()
+
+    def show_refusals(self):
+        if self.refusals_dialog is None:
+            self.refusals_dialog = RefusalsDialog(self.tr_, self.refusals, self)
+        self.refusals_dialog.refresh()
+        self.refusals_dialog.show()
+        self.refusals_dialog.raise_()
 
     def show_about(self):
         QMessageBox.about(self, self.tr_("menu.about", app=APP_NAME),

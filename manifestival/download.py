@@ -111,6 +111,9 @@ def fetch_image(page: Page, size="max", *, cancel=None, fetch=net.fetch,
                 break  # adresse suivante
             if sniff_image(reply.data) or reply.content_type.startswith("image/"):
                 return reply
+            protection = net.protection_of(None, reply.data)
+            if protection:  # page de vérification anti-robots à la place de l'image
+                raise net.FetchError("blocked", url, 200, protection=protection)
             last_error = net.FetchError("not_image", url, detail=reply.content_type)
             break
     raise last_error or net.FetchError("network", "")

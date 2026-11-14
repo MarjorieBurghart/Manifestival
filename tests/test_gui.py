@@ -186,6 +186,8 @@ def test_download_failures_can_be_retried(qtbot, window, server, tmp_path):
     qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
     assert "1 échec" in dialog.status.text()
     assert "Accès refusé" in dialog.details.toPlainText()
+    refusal = window.refusals.items[-1]     # noté au journal des refus
+    assert (refusal.context, refusal.status, refusal.host) == ("download", 403, "127.0.0.1")
     assert dialog.retry_button.isVisible()
     dialog.retry_button.click()
     qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
@@ -311,8 +313,9 @@ def test_download_dialog_warns_about_slow_servers(qtbot, settings):
     manifest = Manifest(source="", id="", label="Ms", version=2, pages=pages, canvas_count=30)
     dialog = DownloadDialog(Translator("fr"), settings, manifest, pages)
     qtbot.addWidget(dialog)
+    # Gallica : l'API image .highres (50 par minute) passe en premier.
     assert not dialog.host_note.isHidden()
-    assert "5 par minute" in dialog.host_note.text() and "6 min" in dialog.host_note.text()
+    assert "50 par minute" in dialog.host_note.text() and "1 min" in dialog.host_note.text()
     dialog.size_combo.setCurrentIndex(2)   # 1500 pixels : pas la pleine taille
     assert dialog.host_note.isHidden()
 
@@ -363,3 +366,28 @@ def test_download_shows_megabytes_while_receiving(qtbot, settings, tmp_path):
         dialog.start()
         qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
         assert any("Mo sur" in t and "f1" in t for t in texts)
+
+
+def test_refusals_are_logged_and_shown(qtbot, settings, monkeypatch, tmp_path):
+    from manifestival.refusals import RefusalLog
+    warnings = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda parent, title, text, *a: warnings.append(text))
+    log = RefusalLog(tmp_path / "refusals.json")
+    win = MainWindow(Translator("fr"), settings, refusals=log)
+    qtbot.addWidget(win)
+    win.show()
+    with IIIFServer(real_jpeg()) as server:
+        server.cloudflare = True
+        _open(qtbot, win, server.base + "/manifest3.json")   # manifest servi, images refusées
+        qtbot.waitUntil(lambda: bool(win.blocked_message), timeout=10000)
+    assert "Cloudflare" in win.blocked_message
+    assert [(r.context, r.status, r.protection) for r in log.items] == [("thumbnails", 403, "Cloudflare")]
+    win.show_refusals()
+    dialog = win.refusals_dialog
+    assert dialog.table.rowCount() == 1 and dialog.table.item(0, 3).text() == "Cloudflare"
+    assert dialog.table.item(0, 4).text() == "vignettes"
+    dialog.copy_button.click()
+    assert "403 [Cloudflare]" in QApplication.clipboard().text()
+    dialog.clear_button.click()
+    assert dialog.table.isHidden() and not dialog.empty.isHidden()
+    win.loader.shutdown()

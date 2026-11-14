@@ -75,8 +75,9 @@ def _default_folder() -> str:
 
 
 class DownloadDialog(QDialog):
-    def __init__(self, tr, settings, manifest, pages, parent=None, fetch=None):
+    def __init__(self, tr, settings, manifest, pages, parent=None, fetch=None, refusals=None):
         super().__init__(parent)
+        self.refusals = refusals
         self.tr_ = tr
         self.settings = settings
         self.manifest = manifest
@@ -410,12 +411,13 @@ class DownloadDialog(QDialog):
         urls = image_urls(self.pages[0], self.size_combo.currentData() or "max")
         url = urls[0] if urls else ""
         rule = rule_for(url)
-        if not url or not rule.full_interval or not is_full_size(url):
+        gap = rule.interval_for(url) if url else 0
+        if not url or not rule.full_interval or not is_full_size(url) or gap < 1:
             self.host_note.setVisible(False)
             return
-        minutes = max(1, math.ceil(len(self.pages) * rule.full_interval / 60))
+        minutes = max(1, math.ceil(len(self.pages) * gap / 60))
         self.host_note.setText(self.tr_("download.slow_host", host=host_of(url),
-                                        per_minute=rule.full_per_minute, minutes=minutes))
+                                        per_minute=rule.per_minute(url), minutes=minutes))
         self.host_note.setVisible(True)
 
     def _choose_folder(self):
@@ -521,6 +523,13 @@ class DownloadDialog(QDialog):
             lines.append(error_text(index_error, self.tr_))
         self.status.setText(" · ".join(lines))
         failures = [r for r in self.results if r.status == "failed"]
+        if self.refusals is not None:
+            for r in results:
+                # Une ligne par refus réel ; les images non demandées après
+                # un arrêt portent l'erreur de la dernière, déjà notée.
+                if r.status == "failed" and r.error is not None and r.error is not getattr(self, "_noted", None):
+                    if self.refusals.record(r.error, "download", self.manifest.source):
+                        self._noted = r.error
         if failures:
             self.details.setPlainText("\n".join(
                 f"#{r.page.index} {r.page.label} — {error_text(r.error, self.tr_)}" for r in failures))

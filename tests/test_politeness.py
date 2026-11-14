@@ -102,8 +102,32 @@ def test_pacer_wait_can_be_cancelled():
 def test_download_follows_the_pace(tmp_path):
     clock = FakeClock()
     pages = [Page(index=i, label=f"f{i}", service=ImageService(G.replace("f1", f"f{i}"), 1)) for i in (1, 2, 3)]
-    web = lambda url, **kw: net.Response(FAKE_JPEG, "image/jpeg", url)  # noqa: E731
+    calls = []
+
+    def web(url, **kw):
+        calls.append(url)
+        return net.Response(FAKE_JPEG, "image/jpeg", url)
     results = dl.download([(p, p.label) for p in pages], tmp_path, fetch=web,
                           pacer=Pacer(clock=clock, sleep=clock.sleep))
     assert [r.status for r in results] == ["ok"] * 3
-    assert clock.slept == [12.0, 12.0]
+    # Gallica : l'API .highres d'abord, 50 par minute (1,2 s d'écart).
+    assert all(c.endswith(".highres") for c in calls)
+    assert clock.slept == [1.2, 1.2]
+
+
+def test_gallica_falls_back_to_iiif_at_its_own_pace(tmp_path):
+    clock = FakeClock()
+    pages = [Page(index=i, label=f"f{i}", service=ImageService(G.replace("f1", f"f{i}"), 1)) for i in (1, 2)]
+    calls = []
+
+    def web(url, **kw):
+        calls.append(url)
+        if url.endswith(".highres"):
+            raise net.FetchError("http", url, 404)
+        return net.Response(FAKE_JPEG, "image/jpeg", url)
+    results = dl.download([(p, p.label) for p in pages], tmp_path, fetch=web,
+                          pacer=Pacer(clock=clock, sleep=clock.sleep))
+    assert [r.status for r in results] == ["ok", "ok"]
+    assert calls[1].endswith("/full/full/0/native.jpg")
+    # Après .highres, l'image IIIF en pleine taille attend son tour (12 s).
+    assert 12.0 in clock.slept

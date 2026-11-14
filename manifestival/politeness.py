@@ -24,15 +24,32 @@ class HostRule:
     full_interval: float = 0.0   # secondes entre deux images en pleine taille
     interval: float = 0.0        # secondes entre deux autres requêtes
     concurrency: int = 4         # vignettes ou tuiles demandées à la fois
+    # Services à rythme propre : (fin de l'adresse, secondes entre deux appels).
+    special: tuple = ()
 
     @property
     def full_per_minute(self) -> int:
         return int(60 // self.full_interval) if self.full_interval else 0
 
+    def interval_for(self, url: str) -> float:
+        """Secondes à laisser entre deux requêtes de ce genre."""
+        path = url.split("?")[0]
+        for suffix, gap in self.special:
+            if path.endswith(suffix):
+                return gap
+        return self.full_interval if is_full_size(url) else self.interval
+
+    def per_minute(self, url: str) -> int:
+        gap = self.interval_for(url)
+        return int(60 // gap) if gap else 0
+
 
 DEFAULT = HostRule()
 RULES = {
-    "gallica.bnf.fr": HostRule(full_interval=12.0, interval=1.0, concurrency=2),
+    # Limites provisoires annoncées par la BnF (api.bnf.fr) : images IIIF en
+    # pleine taille, 5 par minute ; API image .highres, 50 par minute.
+    "gallica.bnf.fr": HostRule(full_interval=12.0, interval=1.0, concurrency=2,
+                               special=((".highres", 1.2),)),
 }
 
 # Requête de l'API Image : …/{région}/{taille}/{rotation}/{qualité}.{format}
@@ -69,8 +86,7 @@ class Pacer:
         self.lock = threading.Lock()
 
     def delay(self, url: str) -> float:
-        rule = rule_for(url)
-        gap = rule.full_interval if is_full_size(url) else rule.interval
+        gap = rule_for(url).interval_for(url)
         if not gap:
             return 0.0
         with self.lock:

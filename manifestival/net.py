@@ -29,13 +29,14 @@ POLL = 0.1   # secondes entre deux regards sur l'annulation
 
 class FetchError(Exception):
     def __init__(self, kind: str, url: str = "", status: int | None = None,
-                 detail: str = "", retry_after: float | None = None):
+                 detail: str = "", retry_after: float | None = None, protection: str = ""):
         super().__init__(f"{kind} {status or ''} {detail} {url}".strip())
         self.kind = kind
         self.url = url
         self.status = status
         self.detail = detail
         self.retry_after = retry_after
+        self.protection = protection   # protection anti-robots reconnue, ou ""
 
     @property
     def retryable(self) -> bool:
@@ -77,16 +78,47 @@ def _retry_after(headers) -> float | None:
         return None
 
 
-def is_bot_block(status: int, headers) -> bool:
-    """Refus d'une protection contre les robots (Cloudflare…) plutôt que du
-    serveur IIIF lui-même : page « Attention Required », etc."""
-    if status not in (403, 503):
-        return False
-    try:
-        server = (headers.get("Server") or "").lower()
-        return "cloudflare" in server or bool(headers.get("CF-RAY") or headers.get("cf-mitigated"))
-    except AttributeError:
-        return False
+# Protections contre les robots, reconnues à leurs en-têtes ou à leur page.
+_HEADER_SIGNS = (
+    ("Cloudflare", lambda h, server: "cloudflare" in server or h("CF-RAY") or h("cf-mitigated")),
+    ("Akamai", lambda h, server: "akamai" in server or h("Akamai-GRN")),
+    ("Imperva", lambda h, server: h("X-Iinfo") or "imperva" in (h("X-CDN") or "").lower()),
+    ("DataDome", lambda h, server: "datadome" in server or h("X-DataDome") or h("X-DD-B")),
+    ("Sucuri", lambda h, server: "sucuri" in server or h("X-Sucuri-ID")),
+    ("AWS WAF", lambda h, server: h("x-amzn-waf-action")),
+)
+_BODY_SIGNS = (
+    ("Anubis", (b"anubis",)),
+    ("Cloudflare", (b"attention required! | cloudflare", b"challenge-platform", b"cf-chl-",
+                    b"<title>just a moment")),
+    ("DataDome", (b"captcha-delivery.com",)),
+    ("Imperva", (b"incapsula incident",)),
+)
+
+
+def protection_of(headers=None, body: bytes = b"") -> str:
+    """Nom de la protection anti-robots qui a répondu (« Cloudflare »,
+    « Anubis »…), d'après les en-têtes et le début de la page ; "" sinon."""
+    def header(name):
+        try:
+            return headers.get(name) if headers is not None else None
+        except AttributeError:
+            return None
+    server = (header("Server") or "").lower()
+    for name, sign in _HEADER_SIGNS:
+        if sign(header, server):
+            return name
+    sample = (body or b"")[:65536].lower()
+    for name, needles in _BODY_SIGNS:
+        if any(needle in sample for needle in needles):
+            return name
+    return ""
+
+
+def is_bot_block(status: int, headers, body: bytes = b"") -> bool:
+    """Refus d'une protection contre les robots (Cloudflare, Anubis…) plutôt
+    que du serveur IIIF lui-même."""
+    return status in (401, 403, 503) and bool(protection_of(headers, body))
 
 
 def fetch(url: str, *, timeout: float = 30, max_bytes: int = 50 * 1024 * 1024,
@@ -159,8 +191,14 @@ def _fetch(url, timeout, max_bytes, accept, abandon, progress) -> Response:
     except FetchError:
         raise
     except urllib.error.HTTPError as exc:
-        kind = "blocked" if is_bot_block(exc.code, exc.headers) else "http"
-        raise FetchError(kind, url, exc.code, str(exc.reason or ""), _retry_after(exc.headers)) from None
+        try:
+            body = exc.read(65536) or b""
+        except Exception:
+            body = b""
+        protection = protection_of(exc.headers, body)
+        kind = "blocked" if is_bot_block(exc.code, exc.headers, body) else "http"
+        raise FetchError(kind, url, exc.code, str(exc.reason or ""), _retry_after(exc.headers),
+                         protection=protection) from None
     except urllib.error.URLError as exc:
         reason = exc.reason
         if isinstance(reason, (socket.timeout, TimeoutError)):

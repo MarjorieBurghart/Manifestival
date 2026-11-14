@@ -74,7 +74,11 @@ def start(argv=None, settings=None):
     if settings is None:
         settings = QSettings("Manifestival", "Manifestival")
     language = str(settings.value("language", "") or system_language())
-    window = MainWindow(Translator(language), settings)
+    from PySide6.QtCore import QStandardPaths
+    from .refusals import RefusalLog
+    data_dir = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
+    refusals = RefusalLog(Path(data_dir) / "refusals.json" if data_dir else None)
+    window = MainWindow(Translator(language), settings, refusals=refusals)
     window.show()
     window.raise_()
     window.activateWindow()

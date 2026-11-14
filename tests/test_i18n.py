@@ -27,9 +27,13 @@ def _keys_used_in_code():
     for path in PACKAGE.rglob("*.py"):
         source = path.read_text(encoding="utf-8")
         keys |= set(re.findall(r"""tr_?\(\s*["']([a-z]+\.[a-z_]+)["']""", source))
-    # Clés composées dans download_dialog.py ("download." + key).
+    keys = {k for k in keys if not k.endswith("_")}   # préfixes de clés composées
+    # Clés composées : download_dialog.py ("download." + key), refusals_dialog.py.
     keys |= {f"download.{k}" for k in ("sep_underscore", "sep_hyphen", "sep_dot", "sep_space",
                                         "exists_skip", "exists_replace", "exists_keep")}
+    from manifestival.refusals import CONTEXTS
+    from manifestival.ui.refusals_dialog import COLUMNS
+    keys |= {f"refusals.context_{c}" for c in CONTEXTS} | {f"refusals.{c}" for c in COLUMNS}
     return keys
 
 

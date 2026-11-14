@@ -75,6 +75,10 @@ class ImageTask(QRunnable):
                 if data is not None:
                     self._emit(data, None)
                     return
+                protection = net.protection_of(None, reply.data)
+                if protection:  # page de vérification anti-robots
+                    self._emit(b"", net.FetchError("blocked", url, 200, protection=protection))
+                    return
                 error = net.FetchError("not_image", url, detail=reply.content_type)
                 break
             if self.cancel.is_set():

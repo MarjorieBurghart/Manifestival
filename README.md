@@ -84,23 +84,30 @@ la 7ᵉ image d'un manuscrit de 250 images, intitulée « f. 4r », devient
 
 ## Gallica et les serveurs protégés
 
-Certaines bibliothèques protègent leurs serveurs contre les robots
-(Cloudflare pour Gallica) et limitent le rythme des requêtes. Manifestival
-s'identifie honnêtement (`Manifestival/version (+adresse du projet)`), sans
-se faire passer pour un navigateur, et respecte ces limites :
+**Gallica.** On peut coller directement l'adresse d'une page de Gallica,
+telle qu'on la voit dans le navigateur
+(`https://gallica.bnf.fr/ark:/12148/btv1b…/f3.item`) : Manifestival en déduit
+le manifest IIIF du document. Pour les images en pleine taille, il demande
+d'abord l'API image `.highres`, que la BnF cite parmi ses services avec une
+limite de 50 appels par minute, contre 5 pour les images IIIF en pleine
+taille, qui restent le second recours. Ces deux rythmes sont respectés, et la
+fenêtre de téléchargement annonce la durée prévue.
 
-- pour Gallica, 5 images en pleine taille par minute au plus, comme l'annonce
-  la BnF ; la fenêtre de téléchargement l'indique et estime la durée ; moins
-  de vignettes et de tuiles demandées à la fois ;
-- si une protection refuse une requête (code 403 de Cloudflare), Manifestival
-  cesse aussitôt de solliciter le serveur et l'explique, au lieu d'enchaîner
-  les refus, ce qui aggraverait le blocage.
+**Serveurs protégés.** De plus en plus de bibliothèques protègent leurs
+serveurs contre les robots (Cloudflare, Anubis, Akamai…) et refusent parfois
+tout ce qui n'est pas un navigateur. Manifestival s'identifie honnêtement
+(`Manifestival/version (+adresse du projet)`), sans se faire passer pour un
+navigateur. Si une protection refuse une requête, il cesse aussitôt de
+solliciter le serveur, au lieu d'enchaîner les refus, et nomme la protection
+reconnue.
 
-Un tel refus dépend aussi du réseau (adresses de centres de données, VPN,
-certains réseaux d'établissement). S'il persiste : réessayer plus tard ou
-depuis un autre réseau ; enregistrer le manifest depuis le navigateur et
-l'ouvrir avec *Ouvrir un fichier…* ; ou écrire à la bibliothèque (pour
-Gallica : gallica@bnf.fr).
+**Journal des refus** (*Aide › Journal des refus des serveurs*). Chaque refus
+y est noté : date, serveur, code, protection, type de demande (manifest,
+vignettes, téléchargement) et adresse. Le bouton *Copier le journal* le met
+sous une forme facile à coller dans un message à la bibliothèque concernée
+ou dans une *issue* du projet. Un refus dépend aussi du réseau (adresses de
+centres de données, VPN, certains réseaux d'établissement) : réessayer plus
+tard ou depuis un autre réseau peut suffire.
 
 ## Version prête à l'emploi
 
@@ -166,6 +173,8 @@ manifestival/
   download.py               téléchargement, reprise, liste CSV (sans Qt)
   net.py, sources.py        réseau et lecture des manifests
   politeness.py             rythme des requêtes selon les serveurs (Gallica…)
+  gallica.py                adresses de Gallica (page → manifest, .highres)
+  refusals.py               journal des refus des serveurs
   i18n.py, i18n/*.json      traductions (pluriels selon chaque langue)
   ui/                       interface PySide6
   self_test.py              auto-test de la version construite

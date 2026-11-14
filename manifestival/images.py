@@ -7,6 +7,7 @@ maximale…) et en accepter une autre.
 """
 from __future__ import annotations
 
+from . import gallica
 from .manifest import ImageService, Page
 
 THUMBNAIL_BOX = 240
@@ -76,6 +77,11 @@ def image_urls(page: Page, size="max") -> list[str]:
     permise par le serveur) ou le plus grand côté souhaité en pixels."""
     urls = []
     service = page.service
+    if size == "max":
+        # Gallica : l'API image .highres, au rythme plus large (50/min).
+        highres = gallica.highres_url(service.url if service else page.image_url)
+        if highres:
+            urls.append(highres)
     if service:
         q = _quality(service)
         full_v3 = f"{service.url}/full/max/0/{q}"

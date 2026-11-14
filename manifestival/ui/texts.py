@@ -80,7 +80,10 @@ def error_text(exc, tr) -> str:
     """Message traduit pour une erreur de lecture ou de téléchargement."""
     if isinstance(exc, FetchError):
         if exc.kind == "blocked":
-            return tr("error.blocked", host=host_of(exc.url) or exc.url, code=exc.status)
+            text = tr("error.blocked", host=host_of(exc.url) or exc.url, code=exc.status)
+            if exc.protection:
+                text += " " + tr("error.protection", name=exc.protection)
+            return text
         if exc.kind == "unreachable":
             return tr("error.unreachable", host=host_of(exc.url) or exc.url)
         if exc.kind == "http":
