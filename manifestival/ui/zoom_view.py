@@ -47,7 +47,7 @@ class InfoTask(QRunnable):
     def run(self):
         info = None
         try:
-            reply = self.fetch(self.url, timeout=30, max_bytes=INFO_BYTES,
+            reply = self.fetch(self.url, timeout=20, deadline=60, max_bytes=INFO_BYTES,
                                accept="application/ld+json, application/json;q=0.9, */*;q=0.1",
                                cancel=self.cancel)
             info = json.loads(reply.data.decode("utf-8-sig"))

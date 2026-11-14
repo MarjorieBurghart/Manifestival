@@ -44,7 +44,7 @@ def load_json(source: str, *, cancel=None, fetch=net.fetch):
     if not s:
         raise SourceError("empty")
     if is_web(s):
-        reply = fetch(s, timeout=60, max_bytes=MAX_MANIFEST_BYTES,
+        reply = fetch(s, timeout=30, deadline=180, max_bytes=MAX_MANIFEST_BYTES,
                       accept="application/ld+json, application/json;q=0.9, */*;q=0.1",
                       cancel=cancel)
         data = reply.data

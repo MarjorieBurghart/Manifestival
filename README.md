@@ -55,9 +55,26 @@ Interface en français, anglais, allemand, italien, tchèque, russe et japonais
   - progression, arrêt, **nouvel essai** des images en échec, ouverture du
     dossier à la fin.
 
-Les images sont téléchargées une à une, en respectant les serveurs qui
-demandent de patienter (code 429, « Retry-After »). Une image n'apparaît sous
-son nom définitif qu'une fois complète.
+### Serveurs lents ou défaillants
+
+Les images sont téléchargées une à une. Une image n'apparaît sous son nom
+définitif qu'une fois complète (fichier `.part` en attendant, et une
+réception coupée ne donne jamais une image tronquée).
+
+| Situation | Ce que fait Manifestival |
+|---|---|
+| Serveur lent | Il attend, en affichant les mégaoctets reçus. |
+| Serveur muet | Abandon après 30 s de silence ; une image dure 20 min au plus, même envoyée au compte-gouttes. |
+| Serveur surchargé (429, 503…), coupure, délai dépassé | Nouvel essai après 3, 10 puis 30 s (ou le délai demandé par le serveur, 2 min au plus), annoncé à l'écran. |
+| Image refusée (404, 403…) | Adresse suivante s'il y en a, sinon image en échec ; les autres continuent. |
+| Serveur qui ne répond plus (2 images de suite) | Arrêt, pour ne pas insister ; *Réessayer les échecs* reprendra plus tard. |
+| Protection anti-robots | Arrêt immédiat (voir plus bas). |
+| Disque plein, dossier disparu | Arrêt immédiat, au lieu d'échouer image après image. |
+| *Annuler*, fermeture de la fenêtre | Effet en une fraction de seconde, même si le serveur ne répond pas. |
+
+Les images déjà présentes sont gardées : relancer le téléchargement reprend
+là où il s'était arrêté. Le chargement d'un manifest peut aussi être annulé
+(le bouton *Afficher* devient *Annuler*).
 
 Exemple : avec le préfixe « BnF lat. 1234 », le numéro d'ordre et le libellé,
 la 7ᵉ image d'un manuscrit de 250 images, intitulée « f. 4r », devient

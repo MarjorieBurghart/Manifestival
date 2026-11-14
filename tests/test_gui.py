@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 
 import pytest
 
@@ -313,3 +314,51 @@ def test_download_dialog_warns_about_slow_servers(qtbot, settings):
     assert "5 par minute" in dialog.host_note.text() and "6 min" in dialog.host_note.text()
     dialog.size_combo.setCurrentIndex(2)   # 1500 pixels : pas la pleine taille
     assert dialog.host_note.isHidden()
+
+
+def test_closing_during_a_stuck_download_is_quick(qtbot, settings, monkeypatch, tmp_path):
+    from bad_server import BadServer
+    from manifestival.manifest import Manifest, Page
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.Yes)
+    with BadServer() as bad:
+        pages = (Page(index=1, label="f1", image_url=bad.base + "/hang/1.jpg"),)
+        manifest = Manifest(source="", id="", label="Ms", version=3, pages=pages, canvas_count=1)
+        settings.setValue("download/folder", str(tmp_path))
+        dialog = DownloadDialog(Translator("fr"), settings, manifest, pages)
+        qtbot.addWidget(dialog)
+        dialog.show()
+        dialog.start()
+        qtbot.waitUntil(lambda: bad.hits.get("/hang/1.jpg"), timeout=5000)
+        start = time.monotonic()
+        dialog.reject()           # « Arrêter ? » → Oui
+        assert time.monotonic() - start < 3
+        assert dialog.thread is None and not dialog.isVisible()
+
+
+def test_loading_a_silent_manifest_can_be_cancelled(qtbot, window):
+    from bad_server import BadServer
+    with BadServer() as bad:
+        window.address_combo.setEditText(bad.base + "/hang/manifest.json")
+        window.open_address()
+        assert window.open_button.text() == "Annuler"
+        qtbot.waitUntil(lambda: bad.hits.get("/hang/manifest.json"), timeout=5000)
+        window.open_button.click()
+        qtbot.waitUntil(lambda: window.manifest_thread is None, timeout=3000)
+        assert window.open_button.text() == "Afficher"
+        assert "annulé" in window.statusBar().currentMessage()
+
+
+def test_download_shows_megabytes_while_receiving(qtbot, settings, tmp_path):
+    from bad_server import BadServer
+    from manifestival.manifest import Manifest, Page
+    with BadServer(trickle_delay=0.0005) as bad:
+        pages = (Page(index=1, label="f1", image_url=bad.base + "/trickle/1.jpg"),)
+        manifest = Manifest(source="", id="", label="Ms", version=3, pages=pages, canvas_count=1)
+        settings.setValue("download/folder", str(tmp_path))
+        dialog = DownloadDialog(Translator("fr"), settings, manifest, pages)
+        qtbot.addWidget(dialog)
+        texts = []
+        dialog.status.setText = lambda text, _orig=dialog.status.setText: (texts.append(text), _orig(text))
+        dialog.start()
+        qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
+        assert any("Mo sur" in t and "f1" in t for t in texts)

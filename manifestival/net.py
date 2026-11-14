@@ -14,6 +14,7 @@ import http.client
 import socket
 import ssl
 import threading
+import time
 import urllib.error
 import urllib.request
 
@@ -23,6 +24,7 @@ from . import __version__
 # bonnes pratiques des serveurs publics.
 USER_AGENT = f"Manifestival/{__version__} (+https://github.com/MarjorieBurghart/Manifestival)"
 CHUNK = 64 * 1024
+POLL = 0.1   # secondes entre deux regards sur l'annulation
 
 
 class FetchError(Exception):
@@ -88,27 +90,70 @@ def is_bot_block(status: int, headers) -> bool:
 
 
 def fetch(url: str, *, timeout: float = 30, max_bytes: int = 50 * 1024 * 1024,
-          accept: str = "*/*", cancel: threading.Event | None = None) -> Response:
-    """Contenu de l'adresse ``url`` (http ou https seulement)."""
+          accept: str = "*/*", cancel: threading.Event | None = None,
+          deadline: float | None = None, progress=None) -> Response:
+    """Contenu de l'adresse ``url`` (http ou https seulement).
+
+    ``timeout`` : silence toléré du serveur (connexion, ou entre deux
+    paquets), en secondes. ``deadline`` : durée totale permise, pour un
+    serveur qui répond au compte-gouttes. ``cancel`` : l'annulation prend
+    effet aussitôt, même si le serveur ne répond pas (la requête est alors
+    abandonnée à un fil d'arrière-plan, qui se termine de lui-même).
+    ``progress(reçus, total ou None)`` suit la réception."""
     if not isinstance(url, str) or not url.lower().startswith(("http://", "https://")):
         raise FetchError("not_web", str(url))
+    if cancel is None and deadline is None:
+        return _fetch(url, timeout, max_bytes, accept, None, progress)
+    box: dict = {}
+    done = threading.Event()
+    abandon = threading.Event()
+
+    def work():
+        try:
+            box["reply"] = _fetch(url, timeout, max_bytes, accept, abandon, progress)
+        except BaseException as exc:  # renvoyée au fil appelant
+            box["error"] = exc
+        finally:
+            done.set()
+
+    threading.Thread(target=work, daemon=True, name="manifestival-fetch").start()
+    end = None if deadline is None else time.monotonic() + deadline
+    while not done.wait(POLL):
+        if cancel is not None and cancel.is_set():
+            abandon.set()
+            raise FetchError("cancelled", url)
+        if end is not None and time.monotonic() > end:
+            abandon.set()
+            raise FetchError("timeout", url, detail="deadline")
+    if "error" in box:
+        raise box["error"]
+    return box["reply"]
+
+
+def _fetch(url, timeout, max_bytes, accept, abandon, progress) -> Response:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": accept})
     try:
         with urllib.request.urlopen(request, timeout=timeout, context=ssl_context()) as reply:
             length = reply.headers.get("Content-Length")
-            if length and length.isdigit() and int(length) > max_bytes:
+            total = int(length) if length and length.isdigit() else None
+            if total is not None and total > max_bytes:
                 raise FetchError("too_large", url)
             chunks, size = [], 0
+            read = getattr(reply, "read1", reply.read)  # rend ce qui est arrivé
             while True:
-                if cancel is not None and cancel.is_set():
+                if abandon is not None and abandon.is_set():
                     raise FetchError("cancelled", url)
-                chunk = reply.read(CHUNK)
+                chunk = read(CHUNK)
                 if not chunk:
                     break
                 size += len(chunk)
                 if size > max_bytes:
                     raise FetchError("too_large", url)
                 chunks.append(chunk)
+                if progress is not None and not (abandon is not None and abandon.is_set()):
+                    progress(size, total)
+            if total is not None and size < total:
+                raise FetchError("network", url, detail="incomplete")
             content_type = (reply.headers.get("Content-Type") or "").split(";")[0].strip().lower()
             return Response(b"".join(chunks), content_type, reply.geturl() or url)
     except FetchError:

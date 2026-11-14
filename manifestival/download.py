@@ -23,11 +23,14 @@ import time
 from . import net
 from .images import IMAGE_EXTENSIONS, extension_for, image_urls, sniff_image
 from .manifest import Manifest, Page, plain_text
-from .politeness import Pacer
+from .politeness import Pacer, host_of
 
 MAX_IMAGE_BYTES = 500 * 1024 * 1024
 RETRY_DELAYS = (3, 10, 30)
 MAX_WAIT = 120
+IMAGE_TIMEOUT = 30         # silence toléré du serveur (secondes)
+IMAGE_DEADLINE = 20 * 60   # durée maximale d'une image
+MAX_UNREACHABLE = 2        # images de suite sans réponse du serveur : arrêt
 
 SKIP, REPLACE, KEEP_BOTH = "skip", "replace", "keep_both"
 
@@ -69,22 +72,28 @@ def _wait(cancel: threading.Event | None, seconds: float, sleep) -> bool:
 
 
 def fetch_image(page: Page, size="max", *, cancel=None, fetch=net.fetch,
-                sleep=time.sleep, notify=None) -> net.Response:
+                sleep=time.sleep, notify=None, progress=None) -> net.Response:
     """Image d'une page, en essayant les adresses de :func:`image_urls`
     dans l'ordre ; une erreur passagère est retentée (``RETRY_DELAYS``).
-    ``notify(seconds)`` est appelé avant chaque attente."""
+    ``notify(seconds)`` est appelé avant chaque attente, ``progress(reçus,
+    total)`` pendant la réception. Un serveur qui ne répond pas n'est pas
+    sollicité par une autre adresse de sa part."""
     last_error: Exception | None = None
+    unreachable: set[str] = set()
     urls = image_urls(page, size)
     if not urls:
         raise net.FetchError("not_web", "")
     for url in urls:
+        if host_of(url) in unreachable:
+            continue
         attempt = 0
         while True:
             if cancel is not None and cancel.is_set():
                 raise net.FetchError("cancelled", url)
             try:
-                reply = fetch(url, timeout=60, max_bytes=MAX_IMAGE_BYTES,
-                              accept="image/*", cancel=cancel)
+                reply = fetch(url, timeout=IMAGE_TIMEOUT, deadline=IMAGE_DEADLINE,
+                              max_bytes=MAX_IMAGE_BYTES, accept="image/*", cancel=cancel,
+                              progress=progress)
             except net.FetchError as exc:
                 if exc.kind in ("cancelled", "blocked"):
                     raise  # protection anti-robots : aucune autre adresse
@@ -97,6 +106,8 @@ def fetch_image(page: Page, size="max", *, cancel=None, fetch=net.fetch,
                     if not _wait(cancel, delay, sleep):
                         raise net.FetchError("cancelled", url) from None
                     continue
+                if exc.kind in ("timeout", "network"):
+                    unreachable.add(host_of(url))
                 break  # adresse suivante
             if sniff_image(reply.data) or reply.content_type.startswith("image/"):
                 return reply
@@ -107,16 +118,21 @@ def fetch_image(page: Page, size="max", *, cancel=None, fetch=net.fetch,
 
 def download(jobs, folder, *, size="max", if_exists=SKIP, progress=None,
              cancel: threading.Event | None = None, fetch=net.fetch,
-             sleep=time.sleep, notify=None, pacer: Pacer | None = None) -> list[Result]:
+             sleep=time.sleep, notify=None, pacer: Pacer | None = None,
+             on_bytes=None) -> list[Result]:
     """Télécharge ``jobs`` (suite de ``(page, nom_sans_extension)``) dans
     ``folder``. ``progress(fait, total, résultat)`` est appelé après chaque
     image. ``if_exists`` : ``skip`` (garder le fichier présent, utile pour
     reprendre un téléchargement interrompu), ``replace`` ou ``keep_both``.
     Les requêtes sont espacées selon les limites du serveur (``pacer``) ;
     si une protection anti-robots refuse une image, les suivantes ne sont
-    pas demandées (elles restent en échec, à réessayer plus tard)."""
+    pas demandées (elles restent en échec, à réessayer plus tard). De même
+    si le serveur ne répond plus pour ``MAX_UNREACHABLE`` images de suite
+    (erreur ``unreachable``), ou si l'écriture sur le disque échoue.
+    ``on_bytes(page, reçus, total)`` suit la réception de chaque image."""
     fetch = (pacer or Pacer(sleep=sleep)).wrap(fetch)
-    blocked: net.FetchError | None = None
+    blocked: Exception | None = None   # cause de l'arrêt
+    silent = 0                         # images de suite sans réponse
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     results = [Result(page, stem) for page, stem in jobs]
@@ -139,8 +155,9 @@ def download(jobs, folder, *, size="max", if_exists=SKIP, progress=None,
         if present is not None and if_exists == KEEP_BOTH:
             result.stem = _free_stem(folder, result.stem)
         try:
-            reply = fetch_image(result.page, size, cancel=cancel, fetch=fetch,
-                                sleep=sleep, notify=notify)
+            page = result.page
+            reply = fetch_image(page, size, cancel=cancel, fetch=fetch, sleep=sleep, notify=notify,
+                                progress=(lambda r, t, p=page: on_bytes(p, r, t)) if on_bytes else None)
             ext = extension_for(reply.content_type, reply.data, reply.url)
             target = folder / (result.stem + ext)
             if if_exists == REPLACE and present is not None and present != target:
@@ -149,13 +166,22 @@ def download(jobs, folder, *, size="max", if_exists=SKIP, progress=None,
             partial.write_bytes(reply.data)
             os.replace(partial, target)
             result.status, result.path, result.url = "ok", target, reply.url
+            silent = 0
         except net.FetchError as exc:
             result.status = "cancelled" if exc.kind == "cancelled" else "failed"
             result.error = exc
             if exc.kind == "blocked":
                 blocked = exc
+            elif exc.kind in ("timeout", "network"):
+                silent += 1
+                if silent >= MAX_UNREACHABLE:
+                    blocked = net.FetchError("unreachable", exc.url, detail=exc.kind)
+            else:
+                silent = 0
         except OSError as exc:
+            # Disque plein, dossier disparu, droits : inutile de continuer.
             result.status, result.error = "failed", exc
+            blocked = exc
         if progress:
             progress(done, total, result)
     return results

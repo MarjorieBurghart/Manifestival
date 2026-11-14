@@ -54,7 +54,7 @@ class ImageTask(QRunnable):
             attempt = 0
             while not self.cancel.is_set():
                 try:
-                    reply = self.fetch(url, timeout=30, max_bytes=THUMBNAIL_BYTES,
+                    reply = self.fetch(url, timeout=20, deadline=90, max_bytes=THUMBNAIL_BYTES,
                                        accept="image/*", cancel=self.cancel)
                 except net.FetchError as exc:
                     error = exc

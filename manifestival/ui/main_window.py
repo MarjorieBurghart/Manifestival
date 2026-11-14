@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import threading
 
 from PySide6.QtCore import QLibraryInfo, Qt, QThread, QTranslator, QUrl, Signal
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence
@@ -36,10 +37,13 @@ class ManifestThread(QThread):
         super().__init__(parent)
         self.source = source
         self.fetch = fetch
+        self.cancel = threading.Event()
 
     def run(self):
         try:
-            self.loaded.emit(load_json(self.source, fetch=self.fetch), normalize(self.source))
+            data = load_json(self.source, fetch=self.fetch, cancel=self.cancel)
+            if not self.cancel.is_set():
+                self.loaded.emit(data, normalize(self.source))
         except Exception as exc:
             self.failed.emit(exc)
 
@@ -75,7 +79,7 @@ class MainWindow(QMainWindow):
         self.address_combo.activated.connect(lambda _i: self.open_address())
         self.open_button = QPushButton()
         self.open_button.setDefault(True)
-        self.open_button.clicked.connect(self.open_address)
+        self.open_button.clicked.connect(self._open_clicked)
         self.file_button = QPushButton()
         self.file_button.clicked.connect(self.open_file)
         top = QHBoxLayout()
@@ -220,7 +224,7 @@ class MainWindow(QMainWindow):
         self._update_title()
         self.address_label.setText(tr("main.address"))
         self.address_combo.lineEdit().setPlaceholderText(tr("main.address_placeholder"))
-        self.open_button.setText(tr("main.open"))
+        self.open_button.setText(tr("button.cancel") if self.manifest_thread is not None else tr("main.open"))
         self.file_button.setText(tr("main.open_file"))
         self.select_all_button.setText(tr("main.select_all"))
         self.select_none_button.setText(tr("main.select_none"))
@@ -320,6 +324,7 @@ class MainWindow(QMainWindow):
         self.settings.setValue("view/thumb", self.view.thumb_delegate.box)
         self.loader.shutdown()
         if self.manifest_thread is not None:
+            self.manifest_thread.cancel.set()
             self.manifest_thread.wait(2000)
         super().closeEvent(event)
 
@@ -328,7 +333,21 @@ class MainWindow(QMainWindow):
         self.address_combo.setFocus()
         self.address_combo.lineEdit().selectAll()
 
+    def _open_clicked(self):
+        """Le bouton « Afficher » devient « Annuler » pendant le chargement."""
+        if self.manifest_thread is not None:
+            self.cancel_loading()
+        else:
+            self.open_address()
+
+    def cancel_loading(self):
+        if self.manifest_thread is not None:
+            self.manifest_thread.cancel.set()
+            self.pending_source = None
+
     def open_address(self):
+        if self.manifest_thread is not None:
+            return
         source = self.address_combo.currentText().strip()
         if not source:
             self._focus_address()
@@ -349,7 +368,7 @@ class MainWindow(QMainWindow):
             return
         self.address_combo.setEditText(source)
         self.statusBar().showMessage(self.tr_("main.loading"))
-        self.open_button.setEnabled(False)
+        self.open_button.setText(self.tr_("button.cancel"))
         QApplication.setOverrideCursor(Qt.BusyCursor)
         self.manifest_thread = ManifestThread(source, self, self.fetch)
         self.manifest_thread.loaded.connect(self._json_loaded)
@@ -361,13 +380,16 @@ class MainWindow(QMainWindow):
         thread, self.manifest_thread = self.manifest_thread, None
         if thread is not None:
             thread.deleteLater()
-        self.open_button.setEnabled(True)
+        self.open_button.setText(self.tr_("main.open"))
         QApplication.restoreOverrideCursor()
         pending, self.pending_source = self.pending_source, None
         if pending:
             self.load(pending)
 
     def _load_failed(self, exc):
+        if getattr(exc, "kind", "") == "cancelled":
+            self.statusBar().showMessage(self.tr_("main.loading_cancelled"), 5000)
+            return
         self.statusBar().clearMessage()
         QMessageBox.warning(self, APP_NAME, self.tr_("main.load_failed") + "\n\n" + error_text(exc, self.tr_))
 

@@ -81,6 +81,8 @@ def error_text(exc, tr) -> str:
     if isinstance(exc, FetchError):
         if exc.kind == "blocked":
             return tr("error.blocked", host=host_of(exc.url) or exc.url, code=exc.status)
+        if exc.kind == "unreachable":
+            return tr("error.unreachable", host=host_of(exc.url) or exc.url)
         if exc.kind == "http":
             if exc.status in (401, 403):
                 return tr("error.forbidden", code=exc.status)

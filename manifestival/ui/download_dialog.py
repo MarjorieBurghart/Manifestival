@@ -5,8 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 import math
 import threading
+import time
 
-from PySide6.QtCore import QStandardPaths, Qt, QThread, QUrl, Signal
+from PySide6.QtCore import QLocale, QStandardPaths, Qt, QThread, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout,
                                QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox,
@@ -25,6 +26,7 @@ DEFAULT_PARTS = ("prefix", "n", "label")
 class DownloadThread(QThread):
     progressed = Signal(int, int, object)
     waiting = Signal(float)
+    receiving = Signal(object, int, int)    # page, octets reçus, total (-1 : inconnu)
     finished_with = Signal(object, object)  # résultats, erreur de l'index
 
     def __init__(self, jobs, folder, size, if_exists, manifest, write_index, index_stem,
@@ -35,6 +37,14 @@ class DownloadThread(QThread):
         self.delimiter = delimiter
         self.cancel = threading.Event()
         self.fetch = fetch
+        self._last_bytes = 0.0
+
+    def _on_bytes(self, page, received, total):
+        # Quelques nouvelles par seconde suffisent à l'interface.
+        now = time.monotonic()
+        if now - self._last_bytes >= 0.25 or (total and received >= total):
+            self._last_bytes = now
+            self.receiving.emit(page, received, total if total else -1)
 
     def run(self):
         kwargs = {"fetch": self.fetch} if self.fetch else {}
@@ -42,7 +52,8 @@ class DownloadThread(QThread):
         try:
             results = dl.download(self.jobs, self.folder, size=self.size, if_exists=self.if_exists,
                                   progress=lambda d, t, r: self.progressed.emit(d, t, r),
-                                  cancel=self.cancel, notify=self.waiting.emit, **kwargs)
+                                  cancel=self.cancel, notify=self.waiting.emit,
+                                  on_bytes=self._on_bytes, **kwargs)
         except OSError as exc:
             self.finished_with.emit([], exc)
             return
@@ -443,6 +454,7 @@ class DownloadDialog(QDialog):
         self.last_folder = folder
         self.progress.setRange(0, len(jobs))
         self.progress.setValue(0)
+        self._position = (0, len(jobs))
         self._set_running(True)
         self.status.setText(self.tr_("download.starting"))
         lang = getattr(self.tr_, "lang", "en")
@@ -454,13 +466,29 @@ class DownloadDialog(QDialog):
                                      self, fetch=self.fetch)
         self.thread.progressed.connect(self._progressed)
         self.thread.waiting.connect(self._waiting)
+        self.thread.receiving.connect(self._receiving)
         self.thread.finished_with.connect(self._finished)
         self.thread.start()
 
     def _progressed(self, done, total, result):
+        self._position = (done, total)
         self.progress.setValue(done)
         name = result.path.name if result.path else result.stem
         self.status.setText(self.tr_("download.progress", done=done, total=total, name=name))
+
+    def _megabytes(self, count: int) -> str:
+        return QLocale(getattr(self.tr_, "lang", "en")).toString(count / 1_000_000, "f", 1)
+
+    def _receiving(self, page, received, total):
+        done, count = self._position
+        label = page.label or f"#{page.index}"
+        if total > 0:
+            text = self.tr_("download.receiving_total", done=done + 1, total=count, label=label,
+                            received=self._megabytes(received), size=self._megabytes(total))
+        else:
+            text = self.tr_("download.receiving", done=done + 1, total=count, label=label,
+                            received=self._megabytes(received))
+        self.status.setText(text)
 
     def _waiting(self, seconds):
         self.status.setText(self.tr_("download.waiting", seconds=int(round(seconds))))
@@ -524,7 +552,10 @@ class DownloadDialog(QDialog):
             if answer != QMessageBox.Yes:
                 return
             self.thread.cancel.set()
-            self.thread.wait(15000)
+            # L'annulation prend effet en une fraction de seconde, même si le
+            # serveur ne répond pas (requête abandonnée en arrière-plan).
+            if self.thread.wait(10000):
+                self.thread = None
         else:
             self._save_settings()
         super().reject()
