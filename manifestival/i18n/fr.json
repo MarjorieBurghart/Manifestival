@@ -154,6 +154,7 @@
  "download.confirm_stop": "Un téléchargement est en cours. L'arrêter ?",
  "error.forbidden": "Accès refusé par le serveur (code {code}). Ce document est peut-être réservé.",
  "error.blocked": "Le site {host} a refusé la demande (code {code}) : il se protège contre les accès automatisés. Réessayez plus tard, ou depuis un autre réseau. Si le refus persiste, enregistrez le manifest depuis votre navigateur et ouvrez le fichier (« Ouvrir un fichier… »), ou contactez la bibliothèque.",
+ "error.challenge": "Le site {host} a répondu par une page de vérification anti-robots, conçue pour les navigateurs web, au lieu du document demandé : il se protège contre les accès automatisés. Réessayez plus tard, ou depuis un autre réseau. Si le refus persiste, enregistrez le manifest depuis votre navigateur et ouvrez le fichier (« Ouvrir un fichier… »), ou contactez la bibliothèque.",
  "error.protection": "Protection détectée : {name} (détail dans Aide › Journal des refus des serveurs).",
  "error.unreachable": "Le serveur {host} ne répond plus : téléchargement suspendu pour ne pas insister. Réessayez plus tard avec « Réessayer les échecs » ; les images déjà reçues sont gardées.",
  "error.not_found_web": "Adresse introuvable sur le serveur (code {code}).",

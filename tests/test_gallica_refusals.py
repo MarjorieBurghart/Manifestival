@@ -125,3 +125,12 @@ def test_journal_limit_and_damaged_file(tmp_path):
     (tmp_path / "bad.json").write_text("{pas du json", encoding="utf-8")
     assert RefusalLog(tmp_path / "bad.json").items == []
     assert json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))["format"] == "manifestival-refusals"
+
+
+def test_challenge_message_does_not_show_code_200():
+    from manifestival.i18n import Translator
+    from manifestival.ui.texts import error_text
+    text = error_text(net.FetchError("blocked", MANIFEST, 200, protection="Cloudflare"), Translator("fr"))
+    assert "page de vérification" in text and "200" not in text and "Cloudflare" in text
+    text = error_text(net.FetchError("blocked", MANIFEST, 403, protection="Cloudflare"), Translator("fr"))
+    assert "code 403" in text

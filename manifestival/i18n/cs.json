@@ -165,6 +165,7 @@
  "download.confirm_stop": "Probíhá stahování. Zastavit je?",
  "error.forbidden": "Server odepřel přístup (kód {code}). Dokument je možná přístupný jen omezeně.",
  "error.blocked": "Web {host} požadavek odmítl (kód {code}): chrání se před automatizovaným přístupem. Zkuste to později nebo z jiné sítě. Pokud odmítnutí trvá, uložte manifest z prohlížeče a otevřete soubor („Otevřít soubor…“), nebo kontaktujte knihovnu.",
+ "error.challenge": "Web {host} místo požadovaného dokumentu odpověděl ověřovací stránkou proti robotům, určenou pro webové prohlížeče: chrání se před automatizovaným přístupem. Zkuste to později nebo z jiné sítě. Pokud odmítnutí trvá, uložte manifest z prohlížeče a otevřete soubor („Otevřít soubor…“), nebo kontaktujte knihovnu.",
  "error.protection": "Zjištěná ochrana: {name} (podrobnosti v Nápověda › Záznam odmítnutí serverů).",
  "error.unreachable": "Server {host} přestal odpovídat: stahování pozastaveno, aby se na něj nenaléhalo. Zkuste to později pomocí „Zopakovat neúspěšné“; již přijaté obrázky zůstanou zachovány.",
  "error.not_found_web": "Adresa na serveru nebyla nalezena (kód {code}).",

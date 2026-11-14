@@ -154,6 +154,7 @@
  "download.confirm_stop": "Ein Download läuft. Anhalten?",
  "error.forbidden": "Zugriff vom Server verweigert (Code {code}). Dieses Dokument ist möglicherweise zugangsbeschränkt.",
  "error.blocked": "Die Website {host} hat die Anfrage abgelehnt (Code {code}): Sie schützt sich vor automatisierten Zugriffen. Versuchen Sie es später oder aus einem anderen Netz erneut. Bleibt die Ablehnung bestehen, speichern Sie das Manifest im Browser und öffnen Sie die Datei („Datei öffnen…“), oder wenden Sie sich an die Bibliothek.",
+ "error.challenge": "Die Website {host} hat statt des angeforderten Dokuments eine Prüfseite gegen Roboter gesendet, die für Webbrowser gedacht ist: Sie schützt sich vor automatisierten Zugriffen. Versuchen Sie es später oder aus einem anderen Netz erneut. Bleibt die Ablehnung bestehen, speichern Sie das Manifest im Browser und öffnen Sie die Datei („Datei öffnen…“), oder wenden Sie sich an die Bibliothek.",
  "error.protection": "Erkannter Schutz: {name} (Details unter Hilfe › Protokoll der Serverablehnungen).",
  "error.unreachable": "Der Server {host} antwortet nicht mehr: Download angehalten, um ihn nicht weiter zu belasten. Versuchen Sie es später mit „Fehlgeschlagene erneut versuchen“; bereits empfangene Bilder bleiben erhalten.",
  "error.not_found_web": "Adresse auf dem Server nicht gefunden (Code {code}).",
