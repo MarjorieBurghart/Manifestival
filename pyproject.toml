@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Explorer un manifest IIIF et télécharger ses images avec des noms de fichiers parlants."
 readme = "README.md"
 requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Marjorie Burghart" }]
 dependencies = ["PySide6>=6.5"]
 
 [project.optional-dependencies]

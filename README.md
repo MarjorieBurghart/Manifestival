@@ -217,3 +217,14 @@ Pour ajouter un texte à l'interface : ajouter la clé dans **les sept** fichier
 `manifestival/i18n/*.json` (les tests le vérifient). Un texte qui dépend
 d'un nombre est un objet `{"one": …, "other": …}` (tchèque : `few` en plus ;
 russe : `few` et `many` ; japonais : `other` seulement).
+
+## Licence
+
+Manifestival est distribué sous **licence MIT**, © 2026 Marjorie Burghart
+(voir [`LICENSE`](LICENSE)) : vous pouvez l'utiliser, le modifier et le
+redistribuer librement, y compris dans d'autres logiciels, à condition de
+conserver la mention du droit d'auteur et de la licence.
+
+La version prête à l'emploi embarque Python (licence PSF), Qt et PySide6
+(LGPL v3, bibliothèques en fichiers distincts et remplaçables) et certifi
+(MPL 2.0) ; leurs licences sont dans le dossier `licences` de chaque archive.

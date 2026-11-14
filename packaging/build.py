@@ -146,6 +146,7 @@ def add_documents(folder, version, system=sys.platform):
     write(folder / README.name, README.read_text(encoding="utf-8").replace("{version}", version))
     licences = folder / "licences"
     licences.mkdir(exist_ok=True)
+    write(licences / "Manifestival.txt", (ROOT / "LICENSE").read_text(encoding="utf-8"))
     for text in sorted(LICENCES.glob("*.txt")):
         write(licences / text.name, text.read_text(encoding="utf-8"))
 

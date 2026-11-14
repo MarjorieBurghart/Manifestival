@@ -60,6 +60,16 @@ Report a problem, new versions:
   https://github.com/MarjorieBurghart/Manifestival
 
 
+LICENCE / LICENSE
+-----------------
+
+Manifestival : © 2026 Marjorie Burghart, licence MIT (licences/Manifestival.txt).
+Vous pouvez l'utiliser, le modifier et le redistribuer librement, à condition
+de conserver la mention du droit d'auteur et de la licence.
+You may use, modify and redistribute it freely, provided the copyright and
+licence notice are kept.
+
+
 COMPOSANTS / COMPONENTS
 -----------------------
 

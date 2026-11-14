@@ -75,7 +75,10 @@ def test_documents_next_to_the_application(tmp_path):
     readme = (tmp_path / "LISEZMOI.txt").read_bytes()
     assert readme.startswith(b"\xef\xbb\xbf") and b"\r\n" in readme and b"MANIFESTIVAL 9.9.9" in readme
     assert sorted(p.name for p in (tmp_path / "licences").iterdir()) == [
-        "GPL-3.0.txt", "LGPL-3.0.txt", "MPL-2.0.txt", "Python.txt"]
+        "GPL-3.0.txt", "LGPL-3.0.txt", "MPL-2.0.txt", "Manifestival.txt", "Python.txt"]
+    mit = (tmp_path / "licences" / "Manifestival.txt").read_text(encoding="utf-8-sig")
+    assert "MIT License" in mit and "Copyright (c) 2026 Marjorie Burghart" in mit
+    assert "licence MIT" in readme.decode("utf-8-sig")
     for name in ("Python.txt", "LGPL-3.0.txt", "MPL-2.0.txt"):
         assert name in readme.decode("utf-8-sig")
 

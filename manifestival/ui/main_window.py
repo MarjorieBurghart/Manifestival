@@ -513,7 +513,10 @@ class MainWindow(QMainWindow):
 
     def show_about(self):
         QMessageBox.about(self, self.tr_("menu.about", app=APP_NAME),
-                          self.tr_("help.about", app=APP_NAME, version=__version__))
+                          self.tr_("help.about", app=APP_NAME, version=__version__)
+                          + "<br><br>© 2026 Marjorie Burghart — MIT<br>"
+                          + '<a href="https://github.com/MarjorieBurghart/Manifestival">'
+                          + "github.com/MarjorieBurghart/Manifestival</a>")
 
     # ------------------------------------------------------------ glisser-déposer
     def dragEnterEvent(self, event):
