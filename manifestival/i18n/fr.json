@@ -73,6 +73,14 @@
  "preview.caption": "{label} — image {row} sur {count}",
  "preview.loading": "Chargement…",
  "preview.failed": "Image indisponible.",
+ "preview.zoom_in": "Zoom avant",
+ "preview.zoom_out": "Zoom arrière",
+ "preview.fit": "Ajuster",
+ "preview.actual": "100 %",
+ "preview.actual_tip": "Taille réelle : un pixel de l'image par pixel de l'écran",
+ "preview.hint": "Molette : zoomer · Glisser : se déplacer · Double-clic : zoomer ici",
+ "preview.zoom_status": "{percent} % de {width} × {height} px",
+ "preview.loading_detail": "chargement des détails…",
  "download.title": "Télécharger les images",
  "download.folder": "Enregistrer dans le dossier :",
  "download.choose_folder": "Choisir…",
@@ -156,6 +164,6 @@
  "error.no_images": "Ce manifest ne contient aucune image.",
  "error.disk": "Impossible d'écrire sur le disque : {detail}",
  "error.unexpected": "Erreur inattendue : {detail}",
- "help.text": "<h3>Mode d'emploi</h3><ol><li><b>Ouvrir un document</b> : collez l'adresse du manifest IIIF dans la barre du haut et cliquez sur <i>Afficher</i> (ou ouvrez un fichier, ou faites glisser un lien dans la fenêtre).</li><li><b>Parcourir</b> : les métadonnées du document sont à droite, onglet <i>Document</i> ; cliquez sur une vignette pour voir celles de l'image (onglet <i>Image</i>). Double-clic ou Entrée : voir l'image en grand.</li><li><b>Choisir les images</b> : un clic coche ou décoche une vignette. Pour une suite d'images, cliquez sur la première, puis Maj+clic (ou Ctrl+Maj+clic) sur la dernière. Boutons et menu <i>Sélection</i> : tout sélectionner, tout désélectionner, inverser.</li><li><b>Télécharger</b> : bouton <i>Télécharger…</i> en bas à droite. Choisissez le dossier et la composition du nom des fichiers (préfixe comme la cote, numéro d'ordre, folio…) ; l'aperçu montre les noms obtenus.</li></ol><p>Un téléchargement interrompu peut être repris : les images déjà présentes sont gardées.</p>",
+ "help.text": "<h3>Mode d'emploi</h3><ol><li><b>Ouvrir un document</b> : collez l'adresse du manifest IIIF dans la barre du haut et cliquez sur <i>Afficher</i> (ou ouvrez un fichier, ou faites glisser un lien dans la fenêtre).</li><li><b>Parcourir</b> : les métadonnées du document sont à droite, onglet <i>Document</i> ; cliquez sur une vignette pour voir celles de l'image (onglet <i>Image</i>). Double-clic ou Entrée : voir l'image en grand, et zoomer à la molette jusqu'à sa pleine résolution.</li><li><b>Choisir les images</b> : un clic coche ou décoche une vignette. Pour une suite d'images, cliquez sur la première, puis Maj+clic (ou Ctrl+Maj+clic) sur la dernière. Boutons et menu <i>Sélection</i> : tout sélectionner, tout désélectionner, inverser.</li><li><b>Télécharger</b> : bouton <i>Télécharger…</i> en bas à droite. Choisissez le dossier et la composition du nom des fichiers (préfixe comme la cote, numéro d'ordre, folio…) ; l'aperçu montre les noms obtenus.</li></ol><p>Un téléchargement interrompu peut être repris : les images déjà présentes sont gardées.</p>",
  "help.about": "<b>{app}</b> {version}<br>Explorer un manifest IIIF et télécharger ses images.<br>Python et PySide6 (Qt)."
 }

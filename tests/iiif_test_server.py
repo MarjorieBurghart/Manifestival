@@ -31,6 +31,29 @@ def real_jpeg(width: int = 60, height: int = 90, color: int = 0x8A6D3B) -> bytes
     return bytes(array.data())
 
 
+def page_image(width: int = 2000, height: int = 3000):
+    """Grande image de test : un damier numéroté, pour voir la netteté."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QColor, QFont, QImage, QPainter
+    image = QImage(width, height, QImage.Format_RGB32)
+    image.fill(QColor("#efe4c8"))
+    painter = QPainter(image)
+    font = QFont("DejaVu Sans")
+    font.setPixelSize(18)
+    painter.setFont(font)
+    step = 100
+    for gy in range(0, height, step):
+        for gx in range(0, width, step):
+            if (gx // step + gy // step) % 2:
+                painter.fillRect(gx, gy, step, step, QColor("#e3d3ad"))
+            painter.setPen(QColor("#5a3d1e"))
+            painter.drawText(gx, gy, step, step, Qt.AlignCenter, f"{gx // step},{gy // step}")
+    painter.setPen(QColor("#a0302a"))
+    painter.drawRect(0, 0, width - 1, height - 1)
+    painter.end()
+    return image
+
+
 def manifest_v3(base: str, count: int = 5) -> dict:
     labels = ["f. 1r", "f. 1v", "f. 2r", "f. 2v", "Reliure / dos"]
     items = []
@@ -109,8 +132,13 @@ class IIIFServer:
     """``image_bytes`` : contenu servi pour toute image ; ``failures`` :
     ``{identifiant: [codes HTTP à renvoyer d'abord]}``."""
 
-    def __init__(self, image_bytes: bytes = FAKE_JPEG):
+    def __init__(self, image_bytes: bytes = FAKE_JPEG, source=None, tiles=True):
+        """``source`` : QImage servie en vrai service IIIF (régions et
+        tailles demandées découpées dedans) ; ``tiles`` : l'info.json
+        annonce-t-il des tuiles (sinon : niveau 0 sans tuiles)."""
         self.image_bytes = image_bytes
+        self.source = source
+        self.tiles = tiles
         self.failures: dict[str, list[int]] = {}
         self.requests: list[str] = []
         self.lock = threading.Lock()
@@ -139,6 +167,16 @@ class IIIFServer:
                         code = queue.pop(0) if queue else None
                     if code:
                         return self._send(code, b"error", "text/plain", {"Retry-After": "0"})
+                    if self.path.endswith("/info.json"):
+                        info = server.info(ident)
+                        if info is None:
+                            return self._send(404, b"no info", "text/plain")
+                        return self._send(200, json.dumps(info).encode(), "application/json")
+                    if server.source is not None:
+                        body = server.render(self.path)
+                        if body is None:
+                            return self._send(400, b"bad request", "text/plain")
+                        return self._send(200, body, "image/jpeg")
                     return self._send(200, server.image_bytes, "image/jpeg")
                 self._send(404, b"not found", "text/plain")
 
@@ -155,6 +193,45 @@ class IIIFServer:
         self.httpd.daemon_threads = True
         self.base = f"http://127.0.0.1:{self.httpd.server_address[1]}"
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
+
+    def info(self, ident):
+        width, height = (self.source.width(), self.source.height()) if self.source is not None else (2000, 3000)
+        info = {"@context": "http://iiif.io/api/image/3/context.json", "id": f"{self.base}/iiif/{ident}",
+                "type": "ImageService3", "protocol": "http://iiif.io/api/image",
+                "profile": "level1" if self.tiles else "level0", "width": width, "height": height}
+        if self.tiles:
+            info["tiles"] = [{"width": 256, "scaleFactors": [1, 2, 4, 8, 16]}]
+        return info
+
+    def render(self, path):
+        """Région et taille IIIF découpées dans ``source`` (JPEG)."""
+        from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QRect, Qt
+        match = re.match(r"^/iiif/[^/]+/([^/]+)/([^/]+)/0/(default|native)\.jpg$", path)
+        if not match:
+            return None
+        region, size = match.group(1), match.group(2)
+        W, H = self.source.width(), self.source.height()
+        if region == "full":
+            x, y, w, h = 0, 0, W, H
+        else:
+            x, y, w, h = (int(v) for v in region.split(","))
+        image = self.source.copy(QRect(x, y, w, h))
+        if size in ("max", "full"):
+            pass
+        elif size.startswith("!"):
+            bw, bh = (int(v) for v in size[1:].split(","))
+            image = image.scaled(bw, bh, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        else:
+            sw, _, sh = size.partition(",")
+            sw = int(sw) if sw else round(w * int(sh) / h)
+            sh = int(sh) if sh else round(h * sw / w)
+            image = image.scaled(sw, sh, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+        array = QByteArray()
+        buffer = QBuffer(array)
+        buffer.open(QIODevice.WriteOnly)
+        image.save(buffer, "JPG", 85)
+        buffer.close()
+        return bytes(array.data())
 
     def __enter__(self):
         self.thread.start()

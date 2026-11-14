@@ -19,8 +19,15 @@ Interface en français, anglais, allemand, italien, tchèque, russe et japonais
   sont proposées dans la liste.
 - **Voir les images en vignettes**, avec leurs métadonnées : celles du document
   (onglet **Document** : titre, cote, date, droits…) et celles de l'image
-  cliquée (onglet **Image** : libellé, position, dimensions…). Un double-clic
-  (ou Entrée) affiche l'image en grand, avec *Précédente* / *Suivante*.
+  cliquée (onglet **Image** : libellé, position, dimensions…).
+- **Zoomer dans une image jusqu'à sa pleine résolution** : un double-clic (ou
+  Entrée) ouvre l'aperçu ; la molette zoome autour du pointeur, on se déplace
+  en faisant glisser l'image, un double-clic zoome à cet endroit ; boutons
+  *Ajuster* (touche 0) et *100 %* (touche 1, un pixel de l'image par pixel de
+  l'écran), jusqu'à 400 %. Comme dans les visionneuses IIIF, seules les
+  tuiles de la zone visible sont demandées au serveur, au niveau de détail
+  utile ; un serveur sans tuiles envoie l'image entière. *Précédente* /
+  *Suivante* (← →) passent d'une image à l'autre.
 - **Sélectionner les images** par des cases à cocher :
   - un clic coche ou décoche une image ;
   - pour une suite d'images : un clic sur la première, puis **Maj+clic** (ou
@@ -108,6 +115,7 @@ manifestival/
   app.py, launch.py         démarrage ; console IPython (Spyder, Jupyter)
   manifest.py               lecture des manifests IIIF 2 et 3 (sans Qt)
   images.py                 adresses des vignettes et des images (API Image)
+  tiles.py                  tuiles IIIF du zoom (info.json, niveaux, adresses)
   naming.py                 noms des fichiers (modèles, nettoyage, doublons)
   download.py               téléchargement, reprise, liste CSV (sans Qt)
   net.py, sources.py        réseau et lecture des manifests

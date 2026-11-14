@@ -73,6 +73,14 @@
  "preview.caption": "{label} — image {row} of {count}",
  "preview.loading": "Loading…",
  "preview.failed": "Image unavailable.",
+ "preview.zoom_in": "Zoom in",
+ "preview.zoom_out": "Zoom out",
+ "preview.fit": "Fit",
+ "preview.actual": "100%",
+ "preview.actual_tip": "Actual size: one image pixel per screen pixel",
+ "preview.hint": "Wheel: zoom · Drag: move · Double-click: zoom here",
+ "preview.zoom_status": "{percent}% of {width} × {height} px",
+ "preview.loading_detail": "loading details…",
  "download.title": "Download images",
  "download.folder": "Save in the folder:",
  "download.choose_folder": "Choose…",
@@ -156,6 +164,6 @@
  "error.no_images": "This manifest contains no image.",
  "error.disk": "Cannot write to disk: {detail}",
  "error.unexpected": "Unexpected error: {detail}",
- "help.text": "<h3>How to use</h3><ol><li><b>Open a document</b>: paste the address of the IIIF manifest in the bar at the top and click <i>Show</i> (or open a file, or drag a link into the window).</li><li><b>Browse</b>: the document's metadata are on the right, <i>Document</i> tab; click a thumbnail to see the image's own (<i>Image</i> tab). Double-click or Enter: view the image larger.</li><li><b>Choose images</b>: a click ticks or unticks a thumbnail. For a run of images, click the first one, then Shift+click (or Ctrl+Shift+click) the last one. Buttons and the <i>Selection</i> menu: select all, select none, invert.</li><li><b>Download</b>: <i>Download…</i> button at the bottom right. Choose the folder and how file names are built (a prefix such as the shelfmark, sequence number, folio…); the preview shows the resulting names.</li></ol><p>An interrupted download can be resumed: images already present are kept.</p>",
+ "help.text": "<h3>How to use</h3><ol><li><b>Open a document</b>: paste the address of the IIIF manifest in the bar at the top and click <i>Show</i> (or open a file, or drag a link into the window).</li><li><b>Browse</b>: the document's metadata are on the right, <i>Document</i> tab; click a thumbnail to see the image's own (<i>Image</i> tab). Double-click or Enter: view the image larger, and zoom with the wheel up to its full resolution.</li><li><b>Choose images</b>: a click ticks or unticks a thumbnail. For a run of images, click the first one, then Shift+click (or Ctrl+Shift+click) the last one. Buttons and the <i>Selection</i> menu: select all, select none, invert.</li><li><b>Download</b>: <i>Download…</i> button at the bottom right. Choose the folder and how file names are built (a prefix such as the shelfmark, sequence number, folio…); the preview shows the resulting names.</li></ol><p>An interrupted download can be resumed: images already present are kept.</p>",
  "help.about": "<b>{app}</b> {version}<br>Explore a IIIF manifest and download its images.<br>Python and PySide6 (Qt)."
 }

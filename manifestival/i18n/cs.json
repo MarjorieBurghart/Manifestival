@@ -78,6 +78,14 @@
  "preview.caption": "{label} — obrázek {row} z {count}",
  "preview.loading": "Načítání…",
  "preview.failed": "Obrázek není k dispozici.",
+ "preview.zoom_in": "Přiblížit",
+ "preview.zoom_out": "Oddálit",
+ "preview.fit": "Přizpůsobit",
+ "preview.actual": "100 %",
+ "preview.actual_tip": "Skutečná velikost: jeden pixel obrázku na pixel obrazovky",
+ "preview.hint": "Kolečko: zoom · Tažení: posun · Dvojklik: přiblížit zde",
+ "preview.zoom_status": "{percent} % z {width} × {height} px",
+ "preview.loading_detail": "načítání podrobností…",
  "download.title": "Stáhnout obrázky",
  "download.folder": "Uložit do složky:",
  "download.choose_folder": "Vybrat…",
@@ -167,6 +175,6 @@
  "error.no_images": "Tento manifest neobsahuje žádný obrázek.",
  "error.disk": "Nelze zapisovat na disk: {detail}",
  "error.unexpected": "Neočekávaná chyba: {detail}",
- "help.text": "<h3>Návod</h3><ol><li><b>Otevřít dokument</b>: vložte adresu manifestu IIIF do horního pole a klepněte na <i>Zobrazit</i> (nebo otevřete soubor či přetáhněte odkaz do okna).</li><li><b>Procházet</b>: metadata dokumentu jsou vpravo, karta <i>Dokument</i>; klepnutím na náhled zobrazíte metadata obrázku (karta <i>Obrázek</i>). Dvojklik nebo Enter: zobrazit obrázek ve větší velikosti.</li><li><b>Vybrat obrázky</b>: klepnutí náhled zaškrtne nebo odškrtne. Pro řadu obrázků klepněte na první a pak Shift+klepnutí (nebo Ctrl+Shift+klepnutí) na poslední. Tlačítka a nabídka <i>Výběr</i>: vybrat vše, zrušit výběr, obrátit.</li><li><b>Stáhnout</b>: tlačítko <i>Stáhnout…</i> vpravo dole. Vyberte složku a složení názvů souborů (předpona jako signatura, pořadové číslo, folio…); náhled ukazuje výsledné názvy.</li></ol><p>Přerušené stahování lze obnovit: již stažené obrázky zůstanou zachovány.</p>",
+ "help.text": "<h3>Návod</h3><ol><li><b>Otevřít dokument</b>: vložte adresu manifestu IIIF do horního pole a klepněte na <i>Zobrazit</i> (nebo otevřete soubor či přetáhněte odkaz do okna).</li><li><b>Procházet</b>: metadata dokumentu jsou vpravo, karta <i>Dokument</i>; klepnutím na náhled zobrazíte metadata obrázku (karta <i>Obrázek</i>). Dvojklik nebo Enter: zobrazit obrázek ve větší velikosti a kolečkem jej přiblížit až do plného rozlišení.</li><li><b>Vybrat obrázky</b>: klepnutí náhled zaškrtne nebo odškrtne. Pro řadu obrázků klepněte na první a pak Shift+klepnutí (nebo Ctrl+Shift+klepnutí) na poslední. Tlačítka a nabídka <i>Výběr</i>: vybrat vše, zrušit výběr, obrátit.</li><li><b>Stáhnout</b>: tlačítko <i>Stáhnout…</i> vpravo dole. Vyberte složku a složení názvů souborů (předpona jako signatura, pořadové číslo, folio…); náhled ukazuje výsledné názvy.</li></ol><p>Přerušené stahování lze obnovit: již stažené obrázky zůstanou zachovány.</p>",
  "help.about": "<b>{app}</b> {version}<br>Prohlížení manifestu IIIF a stahování jeho obrázků.<br>Python a PySide6 (Qt)."
 }

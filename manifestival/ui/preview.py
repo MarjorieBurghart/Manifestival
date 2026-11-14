@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Fenêtre d'aperçu : une image en plus grand, avec sa case à cocher."""
+"""Fenêtre d'aperçu : une image que l'on peut zoomer jusqu'à sa pleine
+résolution (tuiles IIIF), avec sa case à cocher."""
 from __future__ import annotations
 
 import threading
@@ -7,10 +8,12 @@ import threading
 from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtGui import QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (QCheckBox, QDialog, QHBoxLayout, QLabel, QPushButton,
-                               QSizePolicy, QVBoxLayout)
+                               QToolButton, QVBoxLayout)
 
+from .. import net
 from ..images import preview_urls
 from .loader import ImageTask, TaskSignals
+from .zoom_view import ZoomView
 
 PREVIEW_BOX = 1600
 
@@ -21,22 +24,48 @@ class PreviewDialog(QDialog):
         self.tr_ = tr
         self.model = model
         self.row = row
-        self.fetch = fetch
-        self.pixmap: QPixmap | None = None
+        self.fetch = fetch or net.fetch
         self.cancel = threading.Event()
         self.pool = QThreadPool(self)
         self.pool.setMaxThreadCount(2)
         self.signals = TaskSignals(self)
         self.signals.done.connect(self._loaded)
-        self.resize(900, 1000)
+        self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
+        self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
+        self.resize(1000, 1050)
 
         self.title = QLabel()
         self.title.setAlignment(Qt.AlignCenter)
         self.title.setWordWrap(True)
-        self.image = QLabel()
-        self.image.setAlignment(Qt.AlignCenter)
-        self.image.setMinimumSize(200, 200)
-        self.image.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self.view = ZoomView(self, fetch=self.fetch)
+        self.view.setMinimumSize(200, 200)
+        self.view.zoomChanged.connect(self._update_status)
+        self.view.loadingChanged.connect(self._update_status)
+
+        # Barre du zoom
+        self.zoom_out_button = QToolButton()
+        self.zoom_in_button = QToolButton()
+        self.fit_button = QPushButton()
+        self.actual_button = QPushButton()
+        self.zoom_out_button.setText("−")
+        self.zoom_in_button.setText("+")
+        for button in (self.zoom_out_button, self.zoom_in_button):
+            button.setAutoRaise(False)
+            button.setMinimumWidth(32)
+        self.zoom_out_button.clicked.connect(self.view.zoom_out)
+        self.zoom_in_button.clicked.connect(self.view.zoom_in)
+        self.fit_button.clicked.connect(self.view.fit)
+        self.actual_button.clicked.connect(self.view.actual_size)
+        self.status = QLabel()
+        self.hint = QLabel()
+        self.hint.setStyleSheet("color: palette(placeholder-text);")
+        zoom_bar = QHBoxLayout()
+        for widget in (self.zoom_out_button, self.zoom_in_button, self.fit_button, self.actual_button):
+            zoom_bar.addWidget(widget)
+        zoom_bar.addWidget(self.status)
+        zoom_bar.addStretch(1)
+        zoom_bar.addWidget(self.hint)
+
         self.check = QCheckBox()
         self.check.toggled.connect(self._toggled)
         self.previous = QPushButton()
@@ -45,7 +74,7 @@ class PreviewDialog(QDialog):
         self.previous.clicked.connect(lambda: self.show_row(self.row - 1))
         self.next.clicked.connect(lambda: self.show_row(self.row + 1))
         self.close_button.clicked.connect(self.close)
-        for button in (self.previous, self.next, self.close_button):
+        for button in (self.previous, self.next, self.close_button, self.fit_button, self.actual_button):
             button.setAutoDefault(False)
 
         buttons = QHBoxLayout()
@@ -57,12 +86,19 @@ class PreviewDialog(QDialog):
         buttons.addWidget(self.close_button)
         layout = QVBoxLayout(self)
         layout.addWidget(self.title)
-        layout.addWidget(self.image, 1)
+        layout.addLayout(zoom_bar)
+        layout.addWidget(self.view, 1)
         layout.addLayout(buttons)
 
         QShortcut(QKeySequence(Qt.Key_Left), self, activated=lambda: self.show_row(self.row - 1))
         QShortcut(QKeySequence(Qt.Key_Right), self, activated=lambda: self.show_row(self.row + 1))
+        QShortcut(QKeySequence(Qt.Key_PageUp), self, activated=lambda: self.show_row(self.row - 1))
+        QShortcut(QKeySequence(Qt.Key_PageDown), self, activated=lambda: self.show_row(self.row + 1))
         QShortcut(QKeySequence(Qt.Key_Space), self, activated=self.check.toggle)
+        for keys, slot in ((QKeySequence.ZoomIn, self.view.zoom_in), ("+", self.view.zoom_in),
+                           ("=", self.view.zoom_in), (QKeySequence.ZoomOut, self.view.zoom_out),
+                           ("-", self.view.zoom_out), ("0", self.view.fit), ("1", self.view.actual_size)):
+            QShortcut(QKeySequence(keys), self, activated=slot)
         self.model.dataChanged.connect(self._sync_check)
         self.retranslate()
         self.show_row(row)
@@ -74,7 +110,15 @@ class PreviewDialog(QDialog):
         self.next.setText(tr("preview.next") + " ▶")
         self.close_button.setText(tr("button.close"))
         self.check.setText(tr("preview.selected"))
+        self.zoom_out_button.setToolTip(tr("preview.zoom_out") + " (−)")
+        self.zoom_in_button.setToolTip(tr("preview.zoom_in") + " (+)")
+        self.fit_button.setText(tr("preview.fit"))
+        self.fit_button.setToolTip(tr("preview.fit") + " (0)")
+        self.actual_button.setText(tr("preview.actual"))
+        self.actual_button.setToolTip(tr("preview.actual_tip") + " (1)")
+        self.hint.setText(tr("preview.hint"))
         self._update_title()
+        self._update_status()
 
     def _update_title(self):
         if not 0 <= self.row < self.model.rowCount():
@@ -82,6 +126,19 @@ class PreviewDialog(QDialog):
         page = self.model.pages[self.row]
         self.title.setText(self.tr_("preview.caption", label=page.label or "—",
                                     index=page.index, count=self.model.rowCount(), row=self.row + 1))
+
+    def _update_status(self, *args):
+        view = self.view
+        if not view.full_width:
+            self.status.setText(self.tr_("preview.loading"))
+            return
+        percent = round(view.device_zoom() * 100)
+        text = self.tr_("preview.zoom_status", percent=percent,
+                        width=view.full_width, height=view.full_height)
+        if view.loading():
+            text += " · " + self.tr_("preview.loading_detail")
+        self.status.setText(text)
+        self.zoom_in_button.setEnabled(view.zoom() < 4.0 - 1e-6)
 
     def show_row(self, row: int):
         if not 0 <= row < self.model.rowCount():
@@ -93,45 +150,23 @@ class PreviewDialog(QDialog):
         self.next.setEnabled(row < self.model.rowCount() - 1)
         self._update_title()
         self._sync_check()
-        # La vignette en attendant l'image en plus grand.
-        self.pixmap = None
-        thumb = self.model.thumbs.get(row)
-        if thumb:
-            pm = QPixmap()
-            if pm.loadFromData(thumb):
-                self.pixmap = pm
-        self.image.setText("" if self.pixmap else self.tr_("preview.loading"))
-        self._show_pixmap()
         page = self.model.pages[row]
-        kwargs = {"fetch": self.fetch} if self.fetch else {}
+        # La vignette tout de suite, l'aperçu ensuite, les détails au zoom.
+        thumb = QPixmap()
+        thumb_data = self.model.thumbs.get(row)
+        self.view.set_page(page, thumb if thumb_data and thumb.loadFromData(thumb_data) else None)
+        self.view.fit()
         self.pool.start(ImageTask(row, preview_urls(page, PREVIEW_BOX), PREVIEW_BOX,
-                                  self.cancel, self.signals, **kwargs))
+                                  self.cancel, self.signals, self.fetch))
+        self._update_status()
 
     def _loaded(self, key, data, error):
-        if key != self.row:
+        if key != self.row or not data:
             return
-        if data:
-            pm = QPixmap()
-            if pm.loadFromData(data):
-                self.pixmap = pm
-                self._show_pixmap()
-                return
-        if self.pixmap is None:
-            self.image.setText(self.tr_("preview.failed"))
-
-    def _show_pixmap(self):
-        if self.pixmap is None:
-            self.image.setPixmap(QPixmap())
-            return
-        ratio = self.devicePixelRatioF()
-        size = self.image.size() * ratio
-        pm = self.pixmap.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        pm.setDevicePixelRatio(ratio)
-        self.image.setPixmap(pm)
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._show_pixmap()
+        pm = QPixmap()
+        if pm.loadFromData(data):
+            self.view.set_base(pm)
+            self._update_status()
 
     def _sync_check(self, *args):
         checked = self.model.is_checked(self.row)
@@ -143,8 +178,12 @@ class PreviewDialog(QDialog):
     def _toggled(self, value):
         self.model.set_checked([self.row], value)
 
-    def closeEvent(self, event):
+    def _stop(self):
         self.cancel.set()
+        self.view.shutdown()
+
+    def closeEvent(self, event):
+        self._stop()
         try:
             self.model.dataChanged.disconnect(self._sync_check)
         except (RuntimeError, TypeError):
@@ -152,5 +191,5 @@ class PreviewDialog(QDialog):
         super().closeEvent(event)
 
     def done(self, result):
-        self.cancel.set()
+        self._stop()
         super().done(result)

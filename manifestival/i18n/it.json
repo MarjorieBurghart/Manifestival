@@ -73,6 +73,14 @@
  "preview.caption": "{label} — immagine {row} di {count}",
  "preview.loading": "Caricamento…",
  "preview.failed": "Immagine non disponibile.",
+ "preview.zoom_in": "Ingrandisci",
+ "preview.zoom_out": "Riduci",
+ "preview.fit": "Adatta",
+ "preview.actual": "100%",
+ "preview.actual_tip": "Dimensione reale: un pixel dell'immagine per pixel dello schermo",
+ "preview.hint": "Rotella: zoom · Trascina: spostati · Doppio clic: ingrandisci qui",
+ "preview.zoom_status": "{percent}% di {width} × {height} px",
+ "preview.loading_detail": "caricamento dei dettagli…",
  "download.title": "Scarica le immagini",
  "download.folder": "Salva nella cartella:",
  "download.choose_folder": "Scegli…",
@@ -156,6 +164,6 @@
  "error.no_images": "Questo manifest non contiene immagini.",
  "error.disk": "Impossibile scrivere sul disco: {detail}",
  "error.unexpected": "Errore imprevisto: {detail}",
- "help.text": "<h3>Istruzioni</h3><ol><li><b>Aprire un documento</b>: incolla l'indirizzo del manifest IIIF nella barra in alto e clicca su <i>Mostra</i> (oppure apri un file, o trascina un link nella finestra).</li><li><b>Sfogliare</b>: i metadati del documento sono a destra, scheda <i>Documento</i>; clicca su una miniatura per vedere quelli dell'immagine (scheda <i>Immagine</i>). Doppio clic o Invio: vedi l'immagine in grande.</li><li><b>Scegliere le immagini</b>: un clic spunta o toglie la spunta a una miniatura. Per una serie di immagini, clicca sulla prima, poi Maiusc+clic (o Ctrl+Maiusc+clic) sull'ultima. Pulsanti e menu <i>Selezione</i>: seleziona tutto, deseleziona tutto, inverti.</li><li><b>Scaricare</b>: pulsante <i>Scarica…</i> in basso a destra. Scegli la cartella e la composizione del nome dei file (prefisso come la segnatura, numero d'ordine, carta…); l'anteprima mostra i nomi ottenuti.</li></ol><p>Uno scaricamento interrotto può essere ripreso: le immagini già presenti vengono mantenute.</p>",
+ "help.text": "<h3>Istruzioni</h3><ol><li><b>Aprire un documento</b>: incolla l'indirizzo del manifest IIIF nella barra in alto e clicca su <i>Mostra</i> (oppure apri un file, o trascina un link nella finestra).</li><li><b>Sfogliare</b>: i metadati del documento sono a destra, scheda <i>Documento</i>; clicca su una miniatura per vedere quelli dell'immagine (scheda <i>Immagine</i>). Doppio clic o Invio: vedi l'immagine in grande e ingrandiscila con la rotella fino alla piena risoluzione.</li><li><b>Scegliere le immagini</b>: un clic spunta o toglie la spunta a una miniatura. Per una serie di immagini, clicca sulla prima, poi Maiusc+clic (o Ctrl+Maiusc+clic) sull'ultima. Pulsanti e menu <i>Selezione</i>: seleziona tutto, deseleziona tutto, inverti.</li><li><b>Scaricare</b>: pulsante <i>Scarica…</i> in basso a destra. Scegli la cartella e la composizione del nome dei file (prefisso come la segnatura, numero d'ordine, carta…); l'anteprima mostra i nomi ottenuti.</li></ol><p>Uno scaricamento interrotto può essere ripreso: le immagini già presenti vengono mantenute.</p>",
  "help.about": "<b>{app}</b> {version}<br>Esplorare un manifest IIIF e scaricarne le immagini.<br>Python e PySide6 (Qt)."
 }

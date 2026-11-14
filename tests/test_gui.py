@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from iiif_test_server import IIIFServer, real_jpeg
+from iiif_test_server import IIIFServer, page_image, real_jpeg
 
 from PySide6.QtCore import QPoint, QSettings, Qt
 from PySide6.QtWidgets import QApplication, QInputDialog, QMessageBox
@@ -234,3 +234,56 @@ def test_tile_size_slider(qtbot, window, server):
     window.size_slider.setValue(240)
     QApplication.processEvents()
     qtbot.waitUntil(lambda: window.view.visualRect(window.model.index(0)).width() > small)
+
+
+@pytest.mark.parametrize("tiles", [True, False])
+def test_preview_zooms_to_full_resolution(qtbot, settings, monkeypatch, tiles):
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: QMessageBox.Ok)
+    with IIIFServer(source=page_image(800, 1200), tiles=tiles) as server:
+        win = MainWindow(Translator("fr"), settings)
+        qtbot.addWidget(win)
+        win.show()
+        _open(qtbot, win, server.base + "/manifest3.json")
+        win.show_preview(0)
+        preview = win.preview_dialog
+        view = preview.view
+        # Aperçu reçu (au moins la largeur de l'image) et info.json lu.
+        qtbot.waitUntil(lambda: view.base_width >= 800 and view.info_state in ("tiles", "no_tiles"),
+                        timeout=10000)
+        assert view.fitted and view.full_width == 800 and view.full_height == 1200
+        # L'aperçu (!1600,1600) d'une image de 800 × 1200 est déjà entier :
+        # on le force plus petit pour que le zoom demande des détails.
+        view.base_width = 200
+        view.centerOn(400, 600)
+        preview.actual_button.click()
+        assert abs(view.device_zoom() - 1.0) < 1e-6
+        if tiles:
+            qtbot.waitUntil(lambda: view.tile_count() > 0 and not view.loading(), timeout=10000)
+            tile_requests = [r for r in server.requests if r.endswith("/256,256/0/default.jpg")]
+            assert tile_requests and all(",256,256/" in r for r in tile_requests)
+            # Seules les tuiles visibles sont demandées.
+            assert len(tile_requests) <= 20
+            # Budget de mémoire minuscule : les tuiles à l'écran restent.
+            from manifestival.ui import zoom_view
+            monkeypatch.setattr(zoom_view, "TILE_PIXELS", 1)
+            shown = view.tile_count()
+            view._evict()
+            assert view.tile_count() == shown
+            view.centerOn(0, 0)
+            qtbot.waitUntil(lambda: not view.loading(), timeout=10000)
+            assert view.tile_count() <= len(view.visible_keys) + 1
+        else:
+            qtbot.waitUntil(lambda: view.full_state == "done", timeout=10000)
+            assert any("/full/max/0/default.jpg" in r for r in server.requests)
+        assert "100 %" in preview.status.text()
+        preview.zoom_in_button.click()
+        assert view.zoom() > 1.0
+        view.set_zoom(100)
+        assert view.zoom() == 4.0 and not preview.zoom_in_button.isEnabled()
+        preview.fit_button.click()
+        assert view.fitted
+        # Image suivante : la vue repart de zéro.
+        preview.next.click()
+        assert view.tile_count() == 0 and view.fitted
+        preview.close()
+        win.loader.shutdown()

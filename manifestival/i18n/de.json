@@ -73,6 +73,14 @@
  "preview.caption": "{label} — Bild {row} von {count}",
  "preview.loading": "Wird geladen…",
  "preview.failed": "Bild nicht verfügbar.",
+ "preview.zoom_in": "Vergrößern",
+ "preview.zoom_out": "Verkleinern",
+ "preview.fit": "Einpassen",
+ "preview.actual": "100 %",
+ "preview.actual_tip": "Originalgröße: ein Bildpixel pro Bildschirmpixel",
+ "preview.hint": "Mausrad: zoomen · Ziehen: verschieben · Doppelklick: hier vergrößern",
+ "preview.zoom_status": "{percent} % von {width} × {height} px",
+ "preview.loading_detail": "Details werden geladen…",
  "download.title": "Bilder herunterladen",
  "download.folder": "Im Ordner speichern:",
  "download.choose_folder": "Auswählen…",
@@ -156,6 +164,6 @@
  "error.no_images": "Dieses Manifest enthält kein Bild.",
  "error.disk": "Schreiben auf die Festplatte nicht möglich: {detail}",
  "error.unexpected": "Unerwarteter Fehler: {detail}",
- "help.text": "<h3>Anleitung</h3><ol><li><b>Dokument öffnen</b>: Adresse des IIIF-Manifests oben in die Leiste einfügen und auf <i>Anzeigen</i> klicken (oder eine Datei öffnen oder einen Link ins Fenster ziehen).</li><li><b>Durchsehen</b>: Die Metadaten des Dokuments stehen rechts, Reiter <i>Dokument</i>; ein Klick auf ein Vorschaubild zeigt die des Bildes (Reiter <i>Bild</i>). Doppelklick oder Eingabetaste: Bild groß anzeigen.</li><li><b>Bilder auswählen</b>: Ein Klick hakt ein Vorschaubild an oder ab. Für eine Folge von Bildern das erste anklicken, dann Umschalt+Klick (oder Strg+Umschalt+Klick) auf das letzte. Schaltflächen und Menü <i>Auswahl</i>: alle auswählen, Auswahl aufheben, umkehren.</li><li><b>Herunterladen</b>: Schaltfläche <i>Herunterladen…</i> unten rechts. Ordner und Aufbau der Dateinamen wählen (Präfix wie die Signatur, laufende Nummer, Folio…); die Vorschau zeigt die entstehenden Namen.</li></ol><p>Ein abgebrochener Download kann fortgesetzt werden: bereits vorhandene Bilder bleiben erhalten.</p>",
+ "help.text": "<h3>Anleitung</h3><ol><li><b>Dokument öffnen</b>: Adresse des IIIF-Manifests oben in die Leiste einfügen und auf <i>Anzeigen</i> klicken (oder eine Datei öffnen oder einen Link ins Fenster ziehen).</li><li><b>Durchsehen</b>: Die Metadaten des Dokuments stehen rechts, Reiter <i>Dokument</i>; ein Klick auf ein Vorschaubild zeigt die des Bildes (Reiter <i>Bild</i>). Doppelklick oder Eingabetaste: Bild groß anzeigen und mit dem Mausrad bis zur vollen Auflösung zoomen.</li><li><b>Bilder auswählen</b>: Ein Klick hakt ein Vorschaubild an oder ab. Für eine Folge von Bildern das erste anklicken, dann Umschalt+Klick (oder Strg+Umschalt+Klick) auf das letzte. Schaltflächen und Menü <i>Auswahl</i>: alle auswählen, Auswahl aufheben, umkehren.</li><li><b>Herunterladen</b>: Schaltfläche <i>Herunterladen…</i> unten rechts. Ordner und Aufbau der Dateinamen wählen (Präfix wie die Signatur, laufende Nummer, Folio…); die Vorschau zeigt die entstehenden Namen.</li></ol><p>Ein abgebrochener Download kann fortgesetzt werden: bereits vorhandene Bilder bleiben erhalten.</p>",
  "help.about": "<b>{app}</b> {version}<br>Ein IIIF-Manifest erkunden und seine Bilder herunterladen.<br>Python und PySide6 (Qt)."
 }
