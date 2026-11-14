@@ -65,6 +65,26 @@ la 7ᵉ image d'un manuscrit de 250 images, intitulée « f. 4r », devient
 `BnF lat. 1234 - 007 - f. 4r.jpg` ; avec les espaces remplacés,
 `BnF_lat_1234_007_f_4r.jpg`.
 
+## Gallica et les serveurs protégés
+
+Certaines bibliothèques protègent leurs serveurs contre les robots
+(Cloudflare pour Gallica) et limitent le rythme des requêtes. Manifestival
+s'identifie honnêtement (`Manifestival/version (+adresse du projet)`), sans
+se faire passer pour un navigateur, et respecte ces limites :
+
+- pour Gallica, 5 images en pleine taille par minute au plus, comme l'annonce
+  la BnF ; la fenêtre de téléchargement l'indique et estime la durée ; moins
+  de vignettes et de tuiles demandées à la fois ;
+- si une protection refuse une requête (code 403 de Cloudflare), Manifestival
+  cesse aussitôt de solliciter le serveur et l'explique, au lieu d'enchaîner
+  les refus, ce qui aggraverait le blocage.
+
+Un tel refus dépend aussi du réseau (adresses de centres de données, VPN,
+certains réseaux d'établissement). S'il persiste : réessayer plus tard ou
+depuis un autre réseau ; enregistrer le manifest depuis le navigateur et
+l'ouvrir avec *Ouvrir un fichier…* ; ou écrire à la bibliothèque (pour
+Gallica : gallica@bnf.fr).
+
 ## Installation
 
 Il faut **Python 3.10 ou plus récent** (https://www.python.org) et la
@@ -119,6 +139,7 @@ manifestival/
   naming.py                 noms des fichiers (modèles, nettoyage, doublons)
   download.py               téléchargement, reprise, liste CSV (sans Qt)
   net.py, sources.py        réseau et lecture des manifests
+  politeness.py             rythme des requêtes selon les serveurs (Gallica…)
   i18n.py, i18n/*.json      traductions (pluriels selon chaque langue)
   ui/                       interface PySide6
 tests/                      tests (pytest, pytest-qt) avec un serveur IIIF local

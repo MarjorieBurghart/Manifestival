@@ -114,6 +114,7 @@
  "download.exists_replace": "replace it",
  "download.exists_keep": "keep both (number the new one)",
  "download.index": "Also save the list of images (CSV) and the manifest (JSON)",
+ "download.slow_host": "{host} limits full-size images to {per_minute} per minute: the download will follow this pace (about {minutes} min).",
  "download.start": {
   "one": "Download {n} image",
   "other": "Download {n} images"
@@ -148,6 +149,7 @@
  },
  "download.confirm_stop": "A download is in progress. Stop it?",
  "error.forbidden": "Access refused by the server (code {code}). This document may be restricted.",
+ "error.blocked": "The site {host} refused the request (code {code}): it protects itself against automated access. Try again later, or from another network. If the refusal persists, save the manifest from your browser and open the file (“Open a file…”), or contact the library.",
  "error.not_found_web": "Address not found on the server (code {code}).",
  "error.too_many_requests": "The server is receiving too many requests; try again in a few minutes.",
  "error.http": "Server error (code {code}).",

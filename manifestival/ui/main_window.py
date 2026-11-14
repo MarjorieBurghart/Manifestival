@@ -15,6 +15,7 @@ from .. import APP_NAME, __version__, net
 from ..i18n import LANGUAGES
 from ..images import thumbnail_urls
 from ..manifest import collection_entries, is_collection, parse_manifest
+from ..politeness import rule_for
 from ..sources import load_json, normalize
 from .download_dialog import DownloadDialog
 from .loader import ThumbnailLoader
@@ -92,6 +93,8 @@ class MainWindow(QMainWindow):
         self.view.selectionModel().currentChanged.connect(self._current_changed)
         self.loader = ThumbnailLoader(LOAD_BOX, parent=self, fetch=self.fetch)
         self.loader.loaded.connect(self._thumbnail_loaded)
+        self.loader.blocked.connect(self._thumbnails_blocked)
+        self.blocked_message = ""
         self.model.checkedCountChanged.connect(self._update_counts)
 
         self.select_all_button = QPushButton()
@@ -397,7 +400,11 @@ class MainWindow(QMainWindow):
         self.manifest = manifest
         self.model.set_pages(manifest.pages)
         self.stack.setCurrentIndex(1)
-        self.loader.start([thumbnail_urls(p, LOAD_BOX) for p in manifest.pages])
+        self.blocked_message = ""
+        urls = [thumbnail_urls(p, LOAD_BOX) for p in manifest.pages]
+        first = next((u[0] for u in urls if u), manifest.source)
+        self.loader.concurrency = rule_for(first).concurrency
+        self.loader.start(urls)
         self.loader.set_visible(*self.view.visible_rows())
         self.view.scrollToTop()
         if manifest.pages:
@@ -410,6 +417,10 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------ affichage
     def _thumbnail_loaded(self, row, data):
         self.model.set_thumbnail(row, data)
+        self._update_counts()
+
+    def _thumbnails_blocked(self, error):
+        self.blocked_message = error_text(error, self.tr_)
         self._update_counts()
 
     def _current_changed(self, current, previous):
@@ -440,7 +451,9 @@ class MainWindow(QMainWindow):
         self.download_button.setEnabled(checked > 0)
         self.action_download.setEnabled(checked > 0)
         remaining = self.loader.remaining() if self.manifest is not None else 0
-        if remaining:
+        if self.blocked_message:
+            self.statusBar().showMessage(self.blocked_message)
+        elif remaining:
             self.statusBar().showMessage(self.tr_("main.thumbs_loading", n=remaining))
         else:
             self.statusBar().clearMessage()

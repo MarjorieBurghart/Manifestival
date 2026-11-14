@@ -6,6 +6,7 @@ from html import escape
 
 from ..manifest import Manifest, ManifestError, Page, safe_html
 from ..net import FetchError
+from ..politeness import host_of
 from ..sources import SourceError
 
 
@@ -78,6 +79,8 @@ def page_html(page: Page, manifest: Manifest | None, tr) -> str:
 def error_text(exc, tr) -> str:
     """Message traduit pour une erreur de lecture ou de téléchargement."""
     if isinstance(exc, FetchError):
+        if exc.kind == "blocked":
+            return tr("error.blocked", host=host_of(exc.url) or exc.url, code=exc.status)
         if exc.kind == "http":
             if exc.status in (401, 403):
                 return tr("error.forbidden", code=exc.status)

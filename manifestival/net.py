@@ -4,8 +4,8 @@
 :func:`fetch` lit une adresse http(s) avec une taille maximale, un délai et
 une possibilité d'annulation. Les échecs lèvent :class:`FetchError`, dont
 ``kind`` permet d'afficher un message traduit : ``http`` (``status`` donne
-le code), ``timeout``, ``network``, ``too_large``, ``cancelled``,
-``not_web``.
+le code), ``blocked`` (refus d'une protection anti-robots), ``timeout``,
+``network``, ``too_large``, ``cancelled``, ``not_web``.
 """
 from __future__ import annotations
 
@@ -19,7 +19,9 @@ import urllib.request
 
 from . import __version__
 
-USER_AGENT = f"Manifestival/{__version__} (Python urllib)"
+# Un logiciel identifié, avec l'adresse du projet, comme le demandent les
+# bonnes pratiques des serveurs publics.
+USER_AGENT = f"Manifestival/{__version__} (+https://github.com/MarjorieBurghart/Manifestival)"
 CHUNK = 64 * 1024
 
 
@@ -38,6 +40,8 @@ class FetchError(Exception):
         """Vaut-il la peine de réessayer plus tard la même adresse ?"""
         if self.kind in ("timeout", "network"):
             return True
+        if self.kind == "blocked":  # protection anti-robots : ne pas insister
+            return False
         return self.kind == "http" and self.status in (408, 425, 429, 500, 502, 503, 504)
 
 
@@ -71,6 +75,18 @@ def _retry_after(headers) -> float | None:
         return None
 
 
+def is_bot_block(status: int, headers) -> bool:
+    """Refus d'une protection contre les robots (Cloudflare…) plutôt que du
+    serveur IIIF lui-même : page « Attention Required », etc."""
+    if status not in (403, 503):
+        return False
+    try:
+        server = (headers.get("Server") or "").lower()
+        return "cloudflare" in server or bool(headers.get("CF-RAY") or headers.get("cf-mitigated"))
+    except AttributeError:
+        return False
+
+
 def fetch(url: str, *, timeout: float = 30, max_bytes: int = 50 * 1024 * 1024,
           accept: str = "*/*", cancel: threading.Event | None = None) -> Response:
     """Contenu de l'adresse ``url`` (http ou https seulement)."""
@@ -98,7 +114,8 @@ def fetch(url: str, *, timeout: float = 30, max_bytes: int = 50 * 1024 * 1024,
     except FetchError:
         raise
     except urllib.error.HTTPError as exc:
-        raise FetchError("http", url, exc.code, str(exc.reason or ""), _retry_after(exc.headers)) from None
+        kind = "blocked" if is_bot_block(exc.code, exc.headers) else "http"
+        raise FetchError(kind, url, exc.code, str(exc.reason or ""), _retry_after(exc.headers)) from None
     except urllib.error.URLError as exc:
         reason = exc.reason
         if isinstance(reason, (socket.timeout, TimeoutError)):

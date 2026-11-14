@@ -287,3 +287,29 @@ def test_preview_zooms_to_full_resolution(qtbot, settings, monkeypatch, tiles):
         assert view.tile_count() == 0 and view.fitted
         preview.close()
         win.loader.shutdown()
+
+
+def test_blocked_server_stops_thumbnails_and_says_why(qtbot, window):
+    with IIIFServer(real_jpeg()) as server:
+        server.cloudflare = True
+        _open(qtbot, window, server.base + "/manifest3.json")
+        qtbot.waitUntil(lambda: bool(window.blocked_message), timeout=10000)
+        qtbot.waitUntil(lambda: len(window.model.failed) == 5, timeout=10000)
+        image_requests = [r for r in server.requests if r.startswith("/iiif/")]
+        assert len(image_requests) <= 4   # pas une requête par vignette
+        assert "127.0.0.1" in window.statusBar().currentMessage()
+        assert "403" in window.statusBar().currentMessage()
+
+
+def test_download_dialog_warns_about_slow_servers(qtbot, settings):
+    from manifestival.manifest import ImageService, Manifest, Page
+    pages = tuple(Page(index=i, label=f"f{i}",
+                       service=ImageService(f"https://gallica.bnf.fr/iiif/ark:/12148/x/f{i}", 1))
+                  for i in range(1, 31))
+    manifest = Manifest(source="", id="", label="Ms", version=2, pages=pages, canvas_count=30)
+    dialog = DownloadDialog(Translator("fr"), settings, manifest, pages)
+    qtbot.addWidget(dialog)
+    assert not dialog.host_note.isHidden()
+    assert "5 par minute" in dialog.host_note.text() and "6 min" in dialog.host_note.text()
+    dialog.size_combo.setCurrentIndex(2)   # 1500 pixels : pas la pleine taille
+    assert dialog.host_note.isHidden()

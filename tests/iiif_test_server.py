@@ -137,6 +137,7 @@ class IIIFServer:
         tailles demandées découpées dedans) ; ``tiles`` : l'info.json
         annonce-t-il des tuiles (sinon : niveau 0 sans tuiles)."""
         self.image_bytes = image_bytes
+        self.cloudflare = False   # True : toute image refusée comme par Cloudflare
         self.source = source
         self.tiles = tiles
         self.failures: dict[str, list[int]] = {}
@@ -167,6 +168,9 @@ class IIIFServer:
                         code = queue.pop(0) if queue else None
                     if code:
                         return self._send(code, b"error", "text/plain", {"Retry-After": "0"})
+                    if server.cloudflare:  # protection anti-robots simulée
+                        return self._send(403, b"<title>Attention Required! | Cloudflare</title>",
+                                          "text/html", {"Server": "cloudflare", "CF-RAY": "0-TEST"})
                     if self.path.endswith("/info.json"):
                         info = server.info(ident)
                         if info is None:

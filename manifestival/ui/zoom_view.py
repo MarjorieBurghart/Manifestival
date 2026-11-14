@@ -23,6 +23,7 @@ from PySide6.QtWidgets import QFrame, QGraphicsPixmapItem, QGraphicsScene, QGrap
 
 from .. import net
 from ..images import image_urls
+from ..politeness import rule_for
 from ..tiles import TileSource, parse_info
 from .loader import ImageTask, TaskSignals
 
@@ -100,6 +101,7 @@ class ZoomView(QGraphicsView):
         self.info_state = "none"      # none, loading, tiles, no_tiles
         self.full_state = "none"      # none, loading, done, failed
         self.fitted = True
+        self.concurrency = CONCURRENT_TILES
 
     # ------------------------------------------------------------ page
     def set_page(self, page, base: QPixmap | None = None):
@@ -111,6 +113,8 @@ class ZoomView(QGraphicsView):
         self.scene().clear()
         self._reset_state()
         self.page = page
+        self.concurrency = min(CONCURRENT_TILES, rule_for(
+            page.service.url if page.service else page.image_url).concurrency)
         self.full_width = page.width or 0
         self.full_height = page.height or 0
         if base is not None and not base.isNull():
@@ -301,7 +305,7 @@ class ZoomView(QGraphicsView):
         self._pump()
 
     def _pump(self):
-        while self.in_flight < CONCURRENT_TILES and self.queue:
+        while self.in_flight < self.concurrency and self.queue:
             tile = self.queue.pop(0)
             key = (tile.scale, tile.col, tile.row)
             self.requested.add(key)

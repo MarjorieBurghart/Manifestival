@@ -114,6 +114,7 @@
  "download.exists_replace": "sostituirlo",
  "download.exists_keep": "tenere entrambi (numerare il nuovo)",
  "download.index": "Salva anche l'elenco delle immagini (CSV) e il manifest (JSON)",
+ "download.slow_host": "{host} limita le immagini a piena dimensione a {per_minute} al minuto: lo scaricamento seguirà questo ritmo (circa {minutes} min).",
  "download.start": {
   "one": "Scarica {n} immagine",
   "other": "Scarica {n} immagini"
@@ -148,6 +149,7 @@
  },
  "download.confirm_stop": "Uno scaricamento è in corso. Interromperlo?",
  "error.forbidden": "Accesso negato dal server (codice {code}). Questo documento potrebbe essere riservato.",
+ "error.blocked": "Il sito {host} ha rifiutato la richiesta (codice {code}): si protegge dagli accessi automatizzati. Riprova più tardi o da un'altra rete. Se il rifiuto persiste, salva il manifest dal browser e apri il file («Apri un file…»), oppure contatta la biblioteca.",
  "error.not_found_web": "Indirizzo non trovato sul server (codice {code}).",
  "error.too_many_requests": "Il server riceve troppe richieste; riprova tra qualche minuto.",
  "error.http": "Errore del server (codice {code}).",

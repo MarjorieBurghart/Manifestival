@@ -23,6 +23,7 @@ import time
 from . import net
 from .images import IMAGE_EXTENSIONS, extension_for, image_urls, sniff_image
 from .manifest import Manifest, Page, plain_text
+from .politeness import Pacer
 
 MAX_IMAGE_BYTES = 500 * 1024 * 1024
 RETRY_DELAYS = (3, 10, 30)
@@ -85,8 +86,8 @@ def fetch_image(page: Page, size="max", *, cancel=None, fetch=net.fetch,
                 reply = fetch(url, timeout=60, max_bytes=MAX_IMAGE_BYTES,
                               accept="image/*", cancel=cancel)
             except net.FetchError as exc:
-                if exc.kind == "cancelled":
-                    raise
+                if exc.kind in ("cancelled", "blocked"):
+                    raise  # protection anti-robots : aucune autre adresse
                 last_error = exc
                 if exc.retryable and attempt < len(RETRY_DELAYS):
                     delay = min(MAX_WAIT, exc.retry_after if exc.retry_after is not None else RETRY_DELAYS[attempt])
@@ -106,11 +107,16 @@ def fetch_image(page: Page, size="max", *, cancel=None, fetch=net.fetch,
 
 def download(jobs, folder, *, size="max", if_exists=SKIP, progress=None,
              cancel: threading.Event | None = None, fetch=net.fetch,
-             sleep=time.sleep, notify=None) -> list[Result]:
+             sleep=time.sleep, notify=None, pacer: Pacer | None = None) -> list[Result]:
     """Télécharge ``jobs`` (suite de ``(page, nom_sans_extension)``) dans
     ``folder``. ``progress(fait, total, résultat)`` est appelé après chaque
     image. ``if_exists`` : ``skip`` (garder le fichier présent, utile pour
-    reprendre un téléchargement interrompu), ``replace`` ou ``keep_both``."""
+    reprendre un téléchargement interrompu), ``replace`` ou ``keep_both``.
+    Les requêtes sont espacées selon les limites du serveur (``pacer``) ;
+    si une protection anti-robots refuse une image, les suivantes ne sont
+    pas demandées (elles restent en échec, à réessayer plus tard)."""
+    fetch = (pacer or Pacer(sleep=sleep)).wrap(fetch)
+    blocked: net.FetchError | None = None
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     results = [Result(page, stem) for page, stem in jobs]
@@ -122,6 +128,11 @@ def download(jobs, folder, *, size="max", if_exists=SKIP, progress=None,
         present = existing_file(folder, result.stem)
         if present is not None and if_exists == SKIP:
             result.status, result.path = "skipped", present
+            if progress:
+                progress(done, total, result)
+            continue
+        if blocked is not None:
+            result.status, result.error = "failed", blocked
             if progress:
                 progress(done, total, result)
             continue
@@ -141,6 +152,8 @@ def download(jobs, folder, *, size="max", if_exists=SKIP, progress=None,
         except net.FetchError as exc:
             result.status = "cancelled" if exc.kind == "cancelled" else "failed"
             result.error = exc
+            if exc.kind == "blocked":
+                blocked = exc
         except OSError as exc:
             result.status, result.error = "failed", exc
         if progress:

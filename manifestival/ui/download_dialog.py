@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import math
 import threading
 
 from PySide6.QtCore import QStandardPaths, Qt, QThread, QUrl, Signal
@@ -13,7 +14,8 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFileDialog, QForm
 
 from .. import download as dl
 from .. import naming
-from ..images import SIZES
+from ..images import SIZES, image_urls
+from ..politeness import host_of, is_full_size, rule_for
 from .texts import error_text
 
 PREVIEW_COUNT = 4
@@ -156,6 +158,10 @@ class DownloadDialog(QDialog):
         images_form.addRow(self.size_label, self.size_combo)
         images_form.addRow(self.exists_label, self.exists_combo)
         images_form.addRow("", self.index_check)
+        self.host_note = QLabel()
+        self.host_note.setWordWrap(True)
+        self.host_note.setVisible(False)
+        images_form.addRow("", self.host_note)
 
         self.progress = QProgressBar()
         self.progress.setVisible(False)
@@ -206,6 +212,7 @@ class DownloadDialog(QDialog):
             check.toggled.connect(self._options_changed)
         for combo in (self.separator_combo, self.meta_combo):
             combo.currentIndexChanged.connect(self._options_changed)
+        self.size_combo.currentIndexChanged.connect(self._update_host_note)
         self.prefix_combo.editTextChanged.connect(self._update_preview)
         self.template_edit.textChanged.connect(self._update_preview)
         self.folder_edit.textChanged.connect(self._update_preview)
@@ -260,6 +267,7 @@ class DownloadDialog(QDialog):
         self.open_button.setText(tr("download.open_folder"))
         self.close_button.setText(tr("button.close"))
         self._update_preview()
+        self._update_host_note()
 
     # ------------------------------------------------------------ réglages
     def _load_settings(self):
@@ -382,6 +390,22 @@ class DownloadDialog(QDialog):
         self.folder_edit.setToolTip(str(self.target_folder()))
         if self.thread is None and not self.results:
             self.status.setText(self.tr_("download.destination", path=str(self.target_folder())))
+
+    def _update_host_note(self, *args):
+        """Avertit qu'un serveur limite le rythme (Gallica : 5 images en
+        pleine taille par minute) et estime la durée."""
+        if not self.pages:
+            return
+        urls = image_urls(self.pages[0], self.size_combo.currentData() or "max")
+        url = urls[0] if urls else ""
+        rule = rule_for(url)
+        if not url or not rule.full_interval or not is_full_size(url):
+            self.host_note.setVisible(False)
+            return
+        minutes = max(1, math.ceil(len(self.pages) * rule.full_interval / 60))
+        self.host_note.setText(self.tr_("download.slow_host", host=host_of(url),
+                                        per_minute=rule.full_per_minute, minutes=minutes))
+        self.host_note.setVisible(True)
 
     def _choose_folder(self):
         folder = QFileDialog.getExistingDirectory(self, self.tr_("download.choose_folder_title"),

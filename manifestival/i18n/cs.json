@@ -119,6 +119,7 @@
  "download.exists_replace": "nahradit jej",
  "download.exists_keep": "ponechat oba (nový očíslovat)",
  "download.index": "Uložit také seznam obrázků (CSV) a manifest (JSON)",
+ "download.slow_host": "{host} omezuje obrázky v plné velikosti na {per_minute} za minutu: stahování bude toto tempo dodržovat (asi {minutes} min).",
  "download.start": {
   "one": "Stáhnout {n} obrázek",
   "few": "Stáhnout {n} obrázky",
@@ -159,6 +160,7 @@
  },
  "download.confirm_stop": "Probíhá stahování. Zastavit je?",
  "error.forbidden": "Server odepřel přístup (kód {code}). Dokument je možná přístupný jen omezeně.",
+ "error.blocked": "Web {host} požadavek odmítl (kód {code}): chrání se před automatizovaným přístupem. Zkuste to později nebo z jiné sítě. Pokud odmítnutí trvá, uložte manifest z prohlížeče a otevřete soubor („Otevřít soubor…“), nebo kontaktujte knihovnu.",
  "error.not_found_web": "Adresa na serveru nebyla nalezena (kód {code}).",
  "error.too_many_requests": "Server dostává příliš mnoho požadavků; zkuste to znovu za několik minut.",
  "error.http": "Chyba serveru (kód {code}).",

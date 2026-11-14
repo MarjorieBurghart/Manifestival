@@ -58,6 +58,9 @@ class ImageTask(QRunnable):
                                        accept="image/*", cancel=self.cancel)
                 except net.FetchError as exc:
                     error = exc
+                    if exc.kind == "blocked":
+                        self._emit(b"", error)  # aucune autre adresse
+                        return
                     if exc.retryable and attempt < self.retries:
                         attempt += 1
                         delay = min(20.0, exc.retry_after if exc.retry_after is not None else 2.0 * attempt)
@@ -91,6 +94,7 @@ class ThumbnailLoader(QObject):
     """Vignettes d'une liste de pages ; ``loaded(rang, données)`` à chaque
     vignette reçue (données vides en cas d'échec)."""
     loaded = Signal(int, bytes)
+    blocked = Signal(object)   # FetchError : le serveur refuse les requêtes
 
     def __init__(self, box: int, concurrency: int = 4, parent=None, fetch=net.fetch):
         super().__init__(parent)
@@ -162,6 +166,15 @@ class ThumbnailLoader(QObject):
     def _done(self, key, data, error):
         generation, row = key
         if generation != self.generation:
+            return
+        if isinstance(error, net.FetchError) and error.kind == "blocked":
+            # Protection anti-robots : on arrête de solliciter le serveur.
+            self.in_flight = 0   # les autres requêtes en cours sont abandonnées
+            pending, self.pending = sorted(self.pending), set()
+            self.cancel.set()
+            for r in [row, *pending]:
+                self.loaded.emit(r, b"")
+            self.blocked.emit(error)
             return
         self.in_flight = max(0, self.in_flight - 1)
         self.loaded.emit(row, data)
