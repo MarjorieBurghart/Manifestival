@@ -141,6 +141,84 @@ def _check_window():
     return f"{app.platformName()} ; {preview.splitlines()[0] if preview else '?'}"
 
 
+def _check_browser():
+    """Le navigateur intégré (Qt WebEngine) démarre et télécharge : son
+    processus auxiliaire et ses ressources sont là."""
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    import threading
+    from PySide6.QtWidgets import QApplication
+    from .ui import browser
+    if not browser.available():
+        raise RuntimeError("Qt WebEngine absent")
+    body = json.dumps(SAMPLE_V3).encode()
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    session = browser.BrowserSession(None)
+    box = {}
+
+    def work():
+        try:
+            box["reply"] = session.fetch(f"http://127.0.0.1:{server.server_address[1]}/manifest.json",
+                                         deadline=90)
+        except Exception as exc:  # rapportée plus bas
+            box["error"] = exc
+    thread = threading.Thread(target=work, daemon=True)
+    thread.start()
+    app = QApplication.instance()
+    end = time.monotonic() + 120
+    while thread.is_alive() and time.monotonic() < end:
+        app.processEvents()
+        time.sleep(0.01)
+    # Une vraie vue de navigateur, comme la fenêtre de vérification : la
+    # page doit s'afficher (rendu, processus auxiliaire, ressources).
+    from PySide6.QtCore import QUrl
+    from PySide6.QtWebEngineCore import QWebEnginePage
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+    view = QWebEngineView()
+    view.setPage(QWebEnginePage(session.profile, view))
+    shown = {}
+    view.loadFinished.connect(lambda ok: shown.setdefault("ok", ok))
+    view.resize(400, 300)
+    view.show()
+    view.load(QUrl(f"http://127.0.0.1:{server.server_address[1]}/view.json"))
+    end = time.monotonic() + 60
+    while "ok" not in shown and time.monotonic() < end:
+        app.processEvents()
+        time.sleep(0.01)
+    if shown.get("ok"):
+        view.page().toPlainText(lambda text: shown.setdefault("text", text))
+        end = time.monotonic() + 20
+        while "text" not in shown and time.monotonic() < end:
+            app.processEvents()
+            time.sleep(0.01)
+    view.close()
+    import shiboken6
+    shiboken6.delete(view)
+    agent = session.profile.httpUserAgent()
+    session.shutdown()
+    server.shutdown()
+    if "error" in box:
+        raise box["error"]
+    if "reply" not in box:
+        raise RuntimeError("pas de réponse du navigateur intégré")
+    json.loads(box["reply"].data.decode("utf-8"))
+    if not shown.get("ok") or not (shown.get("text") or "").lstrip().startswith("{"):
+        raise RuntimeError(f"la vue du navigateur n'a pas affiché la page : {shown}")
+    return f"{len(box['reply'].data)} octets, page affichée ; {agent.split(') ')[-1]}"
+
+
 CHECKS = (
     ("translations", _check_translations, True),
     ("manifest", _check_manifest, True),
@@ -148,12 +226,17 @@ CHECKS = (
     ("images", _check_images, True),
     ("icon", _check_icon, True),
     ("window", _check_window, True),
+    ("browser", _check_browser, True),
     ("qt_translations", _check_qt_translations, False),
 )
 
 
 def run(report_path) -> int:
+    from PySide6.QtCore import QCoreApplication, Qt
     from PySide6.QtWidgets import QApplication
+    from .ui import browser  # noqa: F401  (Qt WebEngine : avant l'application)
+    if QApplication.instance() is None:
+        QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
     QApplication.instance() or QApplication(["manifestival"])
     checks = []
     for name, check, required in CHECKS:

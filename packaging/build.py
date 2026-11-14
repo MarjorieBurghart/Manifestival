@@ -194,6 +194,11 @@ def build(output) -> Path:
         for entry in (dist / NAME).iterdir():
             entry.rename(folder / entry.name)
     add_documents(folder, version)
+    # Chromium crée au démarrage un dossier « locales » à côté de ses
+    # ressources (les fichiers de langue sont ailleurs, à l'emplacement de
+    # Qt) : il est créé d'avance, pour que l'exécutable n'écrive rien.
+    for resources in folder.rglob("qtwebengine_resources.pak"):
+        (resources.parent / "locales").mkdir(exist_ok=True)
     problems = [f"lien cassé : {link}" for link in broken_links(folder)]
     before = _files(folder)
     report = output / f"self-test-{tag}.json"

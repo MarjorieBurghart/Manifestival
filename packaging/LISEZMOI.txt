@@ -80,6 +80,8 @@ are in the "licences" folder:
 
   - Python (Python Software Foundation License)        Python.txt
   - Qt et PySide6 (GNU LGPL v3)                        LGPL-3.0.txt, GPL-3.0.txt
+  - Qt WebEngine / Chromium, navigateur intégré
+    (GNU LGPL v3 ; BSD et autres licences libres)      Chromium.txt
   - certifi (Mozilla Public License 2.0)               MPL-2.0.txt
 
 Les bibliothèques Qt sont des fichiers distincts, qui peuvent être

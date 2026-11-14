@@ -45,8 +45,9 @@ a = Analysis(
     excludes=[
         "tkinter", "_tkinter", "pytest", "_pytest", "pytestqt", "IPython", "ipykernel", "jupyter_client",
         "spyder_kernels", "matplotlib", "numpy", "PIL",
-        "PySide6.QtTest", "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtQml",
-        "PySide6.QtQuick", "PySide6.QtQuickWidgets", "PySide6.Qt3DCore", "PySide6.QtMultimedia",
+        # Qt WebEngine (navigateur intégré) est gardé, avec Qt Quick et QML
+        # dont il dépend.
+        "PySide6.QtTest", "PySide6.Qt3DCore", "PySide6.QtMultimedia",
         "PySide6.QtPdf", "PySide6.QtCharts", "PySide6.QtDataVisualization", "PySide6.QtBluetooth",
         "PySide6.QtSql", "PySide6.QtXml",
     ],
@@ -54,7 +55,7 @@ a = Analysis(
 )
 
 # Greffons Qt inutiles à une application de bureau, et les bibliothèques
-# qu'eux seuls emportent : clavier virtuel (QML, Qt Quick), images PDF,
+# qu'eux seuls emportent : clavier virtuel, images PDF, modules Qt inutilisés,
 # plateformes embarquées (eglfs, linuxfb, vnc…), thème GTK et la pile GTK de
 # la machine de construction (sous Linux : conflits de versions avec celle
 # du système ; Qt garde ses propres boîtes de dialogue). Gardés : windows,
@@ -63,16 +64,43 @@ a = Analysis(
 UNUSED_QT = re.compile(
     r"plugins/(platforminputcontexts/[^/]*virtualkeyboard|imageformats/[^/]*qpdf|platformthemes/[^/]*gtk3"
     r"|platforms/[^/]*(eglfs|linuxfb|vnc|minimal|vkkhrdisplay)|egldeviceintegrations/|generic/)"
-    r"|Qt6?(VirtualKeyboard|Qml|Quick|Pdf|EglFS|EglFsKms)")
+    r"|Qt6?(VirtualKeyboard|Pdf|EglFS|EglFsKms|Quick3D|QuickTimeline|QuickParticles|Charts|DataVisualization"
+    r"|3D|Multimedia|Sensors|SerialPort|Bluetooth|Nfc|RemoteObjects|Scxml|StateMachine|TextToSpeech"
+    r"|Location|Graphs|SpatialAudio|HttpServer|WebSockets|WebView|ShaderTools)")
 UNUSED_LINUX = re.compile(
     r"^lib(gtk-3|gdk-3|atk-1\.0|atk-bridge-2\.0|atspi|gdk_pixbuf-2\.0|cairo-gobject|cairo|pangocairo-1\.0"
     r"|pangoft2-1\.0|pango-1\.0|epoxy|pixman-1|thai|datrie|fribidi|Xcomposite|Xdamage|Xinerama|Xi|Xrandr"
     r"|Xcursor)\.so")
 
 
+# Le navigateur intégré est Qt WebEngine « widgets » : ni modules QML, ni
+# styles Qt Quick Controls (Qt Quick et QML eux-mêmes restent : Qt WebEngine
+# en dépend).
+UNUSED_QUICK = re.compile(
+    r"(^|/)PySide6/Qt/qml/|Qt6?(QuickControls2|QuickDialogs2|QuickTemplates2|QuickLayouts|QuickShapes"
+    r"|QuickEffects|QuickVectorImage|Labs[A-Za-z]*)")
+# Traductions : celles des sept langues de Manifestival seulement (Qt, et les
+# fichiers de langue de Chromium ; en-US est celui par défaut).
+LANGS = ("fr", "en", "de", "it", "cs", "ru", "ja")
+TRANSLATION = re.compile(r"PySide6/Qt/translations/(.+)$")
+WEBENGINE_LOCALE = re.compile(r"^qtwebengine_locales/([A-Za-z-]+)\.pak$")
+QT_CATALOGUE = re.compile(r"^(qt|qtbase|qtwebengine)_([a-z]{2})(_[A-Za-z]+)?\.qm$")
+
+
+def _wanted_translation(path):
+    locale = WEBENGINE_LOCALE.match(path)
+    if locale:
+        return locale.group(1) == "en-US" or locale.group(1).split("-")[0] in LANGS
+    catalogue = QT_CATALOGUE.match(path)
+    return bool(catalogue and catalogue.group(2) in LANGS)
+
+
 def _wanted(entry):
     name = entry[0].replace("\\", "/")
-    if UNUSED_QT.search(name):
+    if UNUSED_QT.search(name) or UNUSED_QUICK.search(name):
+        return False
+    translation = TRANSLATION.search(name)
+    if translation and not _wanted_translation(translation.group(1)):
         return False
     return not (sys.platform.startswith("linux") and "/" not in name and UNUSED_LINUX.match(name))
 

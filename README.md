@@ -101,6 +101,20 @@ navigateur. Si une protection refuse une requête, il cesse aussitôt de
 solliciter le serveur, au lieu d'enchaîner les refus, et nomme la protection
 reconnue.
 
+**Navigateur intégré.** Certains sites, comme Gallica, n'acceptent que les
+navigateurs web : ils répondent aux logiciels par une page de vérification
+ou par un refus (403). Manifestival propose alors d'ouvrir une fenêtre de
+navigateur sur le document. Elle utilise un vrai moteur de navigateur,
+Qt WebEngine (Chromium), sans aucun déguisement. La vérification s'y fait,
+le plus souvent toute seule en quelques secondes, parfois avec une case à
+cocher, et la fenêtre se ferme d'elle-même quand le document s'affiche.
+Ensuite, pour ce site, le manifest, les vignettes, le zoom et les images
+passent par ce navigateur, toujours au rythme permis par le site. Les cookies
+de la vérification sont gardés d'une séance à l'autre. Si la vérification
+expire, Manifestival la propose de nouveau. *Aide › Oublier les vérifications
+du navigateur* efface ces sites et les cookies du navigateur. Les autres
+sites gardent le moteur réseau ordinaire.
+
 **Journal des refus** (*Aide › Journal des refus des serveurs*). Chaque refus
 y est noté : date, serveur, code, protection, type de demande (manifest,
 vignettes, téléchargement) et adresse. Le bouton *Copier le journal* le met
@@ -175,6 +189,7 @@ manifestival/
   politeness.py             rythme des requêtes selon les serveurs (Gallica…)
   gallica.py                adresses de Gallica (page → manifest, .highres)
   refusals.py               journal des refus des serveurs
+  ui/browser.py             navigateur intégré (Qt WebEngine) : vérification, requêtes
   i18n.py, i18n/*.json      traductions (pluriels selon chaque langue)
   ui/                       interface PySide6
   self_test.py              auto-test de la version construite
