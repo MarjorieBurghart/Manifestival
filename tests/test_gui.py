@@ -120,6 +120,19 @@ def test_download_dialog_names_and_files(qtbot, window, server, tmp_path):
     dialog: DownloadDialog = window.download_dialog
     assert dialog.prefix_combo.itemText(0) == "Ms. lat. 1234"
     dialog.prefix_combo.setEditText("Ms. lat. 1234")
+    # Par défaut, les espaces sont gardés et le séparateur n'est pas entouré.
+    assert not dialog.replace_spaces_check.isChecked() and not dialog.pad_check.isChecked()
+    assert dialog.preview_label.text().splitlines()[0] == "Ms. lat. 1234_001_f. 1r.jpg"
+    dialog.separator_combo.setCurrentIndex(1)  # tiret
+    dialog.pad_check.setChecked(True)
+    assert dialog.template_edit.text() == "{prefix} - {n} - {label}"
+    assert dialog.preview_label.text().splitlines()[0] == "Ms. lat. 1234 - 001 - f. 1r.jpg"
+    dialog.separator_combo.setCurrentIndex(3)  # espace : l'option ne s'applique pas
+    assert not dialog.pad_check.isEnabled() and not dialog.replace_spaces_check.isEnabled()
+    assert dialog.preview_label.text().splitlines()[0] == "Ms. lat. 1234 001 f. 1r.jpg"
+    dialog.separator_combo.setCurrentIndex(0)
+    dialog.pad_check.setChecked(False)
+    dialog.replace_spaces_check.setChecked(True)
     preview = dialog.preview_label.text().splitlines()
     assert preview == ["Ms_lat_1234_001_f_1r.jpg", "Ms_lat_1234_002_f_1v.jpg",
                        "Ms_lat_1234_005_Reliure-dos.jpg"]
@@ -135,7 +148,7 @@ def test_download_dialog_names_and_files(qtbot, window, server, tmp_path):
     # Modèle personnalisé.
     dialog.custom_check.setChecked(True)
     dialog.template_edit.setText("{label}--{prefix}")
-    assert dialog.preview_label.text().splitlines()[0] == "f_1r-Ms_lat_1234.jpg"
+    assert dialog.preview_label.text().splitlines()[0] == "f_1r--Ms_lat_1234.jpg"  # tapé tel quel
     dialog.custom_check.setChecked(False)
 
     dialog.start()
@@ -150,6 +163,7 @@ def test_download_dialog_names_and_files(qtbot, window, server, tmp_path):
     assert dialog.open_button.isVisible()
     # Réglages retenus pour la fois suivante.
     assert window.settings.value("naming/parts") == ["prefix", "n", "label"]
+    assert window.settings.value("naming/spaces_to_separator") in (True, "true")
     # Une seconde fois : les fichiers présents sont gardés.
     dialog.start()
     qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
@@ -176,7 +190,7 @@ def test_download_failures_can_be_retried(qtbot, window, server, tmp_path):
     qtbot.waitUntil(lambda: dialog.thread is None, timeout=15000)
     assert "2 images téléchargées" in dialog.status.text()
     assert not dialog.retry_button.isVisible()
-    assert sorted(p.name for p in target.iterdir()) == ["001_f_1r.jpg", "002_f_1v.jpg"]
+    assert sorted(p.name for p in target.iterdir()) == ["001_f. 1r.jpg", "002_f. 1v.jpg"]
     dialog.reject()
 
 

@@ -91,6 +91,7 @@
  "download.sep_hyphen": "- (Bindestrich)",
  "download.sep_dot": ". (Punkt)",
  "download.sep_space": "Leerzeichen",
+ "download.pad_separator": "mit Leerzeichen davor und danach ( - )",
  "download.replace_spaces": "Leerzeichen durch das Trennzeichen ersetzen",
  "download.strip_accents": "Akzente entfernen",
  "download.custom": "Eigenes Muster:",

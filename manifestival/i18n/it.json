@@ -91,6 +91,7 @@
  "download.sep_hyphen": "- (trattino)",
  "download.sep_dot": ". (punto)",
  "download.sep_space": "spazio",
+ "download.pad_separator": "circondato da spazi ( - )",
  "download.replace_spaces": "Sostituisci gli spazi con il separatore",
  "download.strip_accents": "Togli gli accenti",
  "download.custom": "Modello personalizzato:",

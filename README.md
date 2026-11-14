@@ -34,8 +34,10 @@ Interface en français, anglais, allemand, italien, tchèque, russe et japonais
   - **nom des fichiers** composé à la carte : un **préfixe** (l'application
     propose la cote trouvée dans les métadonnées), le **numéro d'ordre**
     (001, 002…), le **libellé de l'image** (f. 1r, p. 12…), un **champ de
-    métadonnées** des images ; séparateur au choix, espaces remplacés, accents
-    retirés si on le souhaite ; **aperçu** des noms obtenus ;
+    métadonnées** des images ; séparateur au choix (`_`, `-`, `.`, espace),
+    entouré d'espaces si on le souhaite (` - `) ; espaces des libellés
+    remplacés par le séparateur et accents retirés, si on le souhaite ;
+    **aperçu** des noms obtenus ;
   - pour les utilisateurs avancés, un **modèle personnalisé** :
     `{prefix}`, `{n}`, `{label}`, `{title}`, `{meta:Nom du champ}` ;
   - **taille** : la plus grande disponible, ou 3000, 1500, 800 pixels au plus ;
@@ -52,6 +54,8 @@ son nom définitif qu'une fois complète.
 
 Exemple : avec le préfixe « BnF lat. 1234 », le numéro d'ordre et le libellé,
 la 7ᵉ image d'un manuscrit de 250 images, intitulée « f. 4r », devient
+`BnF lat. 1234_007_f. 4r.jpg` ; avec le tiret entouré d'espaces,
+`BnF lat. 1234 - 007 - f. 4r.jpg` ; avec les espaces remplacés,
 `BnF_lat_1234_007_f_4r.jpg`.
 
 ## Installation

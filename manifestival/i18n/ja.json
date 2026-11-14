@@ -86,6 +86,7 @@
  "download.sep_hyphen": "- (ハイフン)",
  "download.sep_dot": ". (ピリオド)",
  "download.sep_space": "スペース",
+ "download.pad_separator": "前後に空白を入れる ( - )",
  "download.replace_spaces": "スペースを区切り文字に置き換える",
  "download.strip_accents": "アクセント記号を除く",
  "download.custom": "カスタムパターン:",

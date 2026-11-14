@@ -115,6 +115,7 @@ class DownloadDialog(QDialog):
 
         self.separator_label = QLabel()
         self.separator_combo = QComboBox()
+        self.pad_check = QCheckBox()
         self.replace_spaces_check = QCheckBox()
         self.accents_check = QCheckBox()
         self.custom_check = QCheckBox()
@@ -131,7 +132,10 @@ class DownloadDialog(QDialog):
         names_form = QFormLayout(self.names_group)
         names_form.addRow(self.prefix_label, self.prefix_combo)
         names_form.addRow(self.contains_label, parts_box)
-        names_form.addRow(self.separator_label, self.separator_combo)
+        separator_row = QHBoxLayout()
+        separator_row.addWidget(self.separator_combo, 1)
+        separator_row.addWidget(self.pad_check)
+        names_form.addRow(self.separator_label, separator_row)
         options_row = QHBoxLayout()
         options_row.addWidget(self.replace_spaces_check)
         options_row.addWidget(self.accents_check)
@@ -197,7 +201,7 @@ class DownloadDialog(QDialog):
         layout.addWidget(self.details)
         layout.addLayout(buttons)
 
-        for check in (*self.part_checks.values(), self.replace_spaces_check,
+        for check in (*self.part_checks.values(), self.pad_check, self.replace_spaces_check,
                       self.accents_check, self.custom_check, self.subfolder_check):
             check.toggled.connect(self._options_changed)
         for combo in (self.separator_combo, self.meta_combo):
@@ -228,6 +232,7 @@ class DownloadDialog(QDialog):
             self.separator_combo.addItem(tr("download." + key), sep)
         self.separator_combo.setCurrentIndex(current)
         self.separator_combo.blockSignals(False)
+        self.pad_check.setText(tr("download.pad_separator"))
         self.replace_spaces_check.setText(tr("download.replace_spaces"))
         self.accents_check.setText(tr("download.strip_accents"))
         self.custom_check.setText(tr("download.custom"))
@@ -270,7 +275,8 @@ class DownloadDialog(QDialog):
             self.meta_combo.setCurrentText(meta)
         sep = str(s.value("naming/separator", "_"))
         self.separator_combo.setProperty("wanted", sep)
-        self.replace_spaces_check.setChecked(_bool(s.value("naming/replace_spaces", True)))
+        self.pad_check.setChecked(_bool(s.value("naming/pad_separator", False)))
+        self.replace_spaces_check.setChecked(_bool(s.value("naming/spaces_to_separator", False)))
         self.accents_check.setChecked(_bool(s.value("naming/strip_accents", False)))
         self.custom_check.setChecked(_bool(s.value("naming/custom", False)))
         self.template_edit.setText(str(s.value("naming/template", "") or ""))
@@ -298,7 +304,8 @@ class DownloadDialog(QDialog):
         s.setValue("naming/parts", [p for p, c in self.part_checks.items() if c.isChecked()])
         s.setValue("naming/meta_field", self.meta_combo.currentText())
         s.setValue("naming/separator", self.separator())
-        s.setValue("naming/replace_spaces", self.replace_spaces_check.isChecked())
+        s.setValue("naming/pad_separator", self.pad_check.isChecked())
+        s.setValue("naming/spaces_to_separator", self.replace_spaces_check.isChecked())
         s.setValue("naming/strip_accents", self.accents_check.isChecked())
         s.setValue("naming/custom", self.custom_check.isChecked())
         s.setValue("naming/template", self.template_edit.text())
@@ -313,7 +320,8 @@ class DownloadDialog(QDialog):
     def _simple_template(self) -> str:
         parts = [p for p in ("prefix", "n", "label", "meta") if self.part_checks[p].isChecked()]
         meta = self.meta_combo.currentText() if self.meta_combo.count() else ""
-        return naming.build_template(parts, self.separator(), meta)
+        joiner = naming.joiner(self.separator(), self.pad_check.isChecked())
+        return naming.build_template(parts, joiner, meta)
 
     def template(self) -> str:
         if self.custom_check.isChecked():
@@ -347,6 +355,10 @@ class DownloadDialog(QDialog):
         for check in self.part_checks.values():
             check.setEnabled(not custom)
         self.meta_combo.setEnabled(not custom)
+        # Avec l'espace pour séparateur, ces deux options n'ont pas d'effet.
+        spaced = self.separator() == " "
+        self.pad_check.setEnabled(not custom and not spaced)
+        self.replace_spaces_check.setEnabled(not spaced)
         self.template_edit.setEnabled(custom)
         self.template_help.setVisible(custom)
         if not custom:

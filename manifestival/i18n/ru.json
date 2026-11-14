@@ -101,6 +101,7 @@
  "download.sep_hyphen": "- (дефис)",
  "download.sep_dot": ". (точка)",
  "download.sep_space": "пробел",
+ "download.pad_separator": "с пробелами по бокам ( - )",
  "download.replace_spaces": "Заменять пробелы разделителем",
  "download.strip_accents": "Убирать диакритические знаки",
  "download.custom": "Свой шаблон:",

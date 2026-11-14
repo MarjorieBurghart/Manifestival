@@ -29,7 +29,15 @@ SEPARATORS = ("_", "-", ".", " ")
 _SEP_CHARS = "_-. "
 MAX_STEM = 150
 _TOKEN = re.compile(r"\{(prefix|n|label|title|meta:[^{}]*)\}")
-_FORBIDDEN = re.compile(r'[<>:"/\\|?*\x00-\x1f\x7f]')
+# Caractères interdits dans un nom de fichier (Windows surtout) : les barres
+# deviennent un tiret (« 3v/4r » → « 3v-4r »), les autres disparaissent
+# (« Folio: 3 » → « Folio 3 »).
+_SLASHES = re.compile(r"[/\\|]")
+_DROPPED = re.compile(r'[<>:"?*\x00-\x1f\x7f]')
+
+
+def _safe(text: str) -> str:
+    return _DROPPED.sub("", _SLASHES.sub("-", text))
 _RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)),
              *(f"LPT{i}" for i in range(1, 10))}
 
@@ -43,13 +51,20 @@ class NamingOptions:
     template: str = "{prefix}_{n}_{label}"
     prefix: str = ""
     separator: str = "_"
-    replace_spaces: bool = True
+    replace_spaces: bool = False
     strip_accents: bool = False
+
+
+def joiner(separator: str = "_", padded: bool = False) -> str:
+    """Ce qui sépare les éléments du nom : le séparateur, entouré d'espaces
+    si ``padded`` (« - » devient « - » avec une espace de chaque côté)."""
+    return f" {separator} " if padded and separator.strip() else separator
 
 
 def build_template(parts, separator: str = "_", meta_field: str = "") -> str:
     """Modèle formé des éléments ``parts`` (``prefix``, ``n``, ``label``,
-    ``title``, ``meta``) dans cet ordre, joints par ``separator``."""
+    ``title``, ``meta``) dans cet ordre, joints par ``separator`` (qui peut
+    être entouré d'espaces, voir :func:`joiner`)."""
     tokens = []
     for part in parts:
         if part == "meta":
@@ -70,17 +85,22 @@ def clean(text: str, options: NamingOptions) -> str:
     if options.strip_accents:
         text = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
         text = unicodedata.normalize("NFC", text)
-    text = _FORBIDDEN.sub("-", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    # « 3v / 4r » → « 3v-4r » : pas d'espaces autour d'un tiret ou d'un
-    # soulignement, pas de suite de tirets.
-    text = re.sub(r" ?([_-]) ?", r"\1", text)
-    text = re.sub(r"([_-])[_-]+", r"\1", text)
+    text = re.sub(r"\s+", " ", _safe(text)).strip()
     if options.replace_spaces and options.separator != " ":
+        # « 3v / 4r » → « 3v-4r » : pas d'espaces autour d'un tiret ou d'un
+        # soulignement, pas de suite de tirets.
+        text = re.sub(r" ?([_-]) ?", r"\1", text)
+        text = re.sub(r"([_-])[_-]+", r"\1", text)
         # « f. 1r » → « f_1r » plutôt que « f._1r ».
         text = re.sub(r"\.(?= )", "", text)
         text = text.replace(" ", options.separator)
     return text
+
+
+def _literal(text: str) -> str:
+    """Texte du modèle hors balises (séparateurs…) : caractères interdits
+    remplacés, espaces gardées telles quelles (« - » entouré d'espaces)."""
+    return _safe(text.replace("\t", " ").replace("\n", " "))
 
 
 def render(page: Page, manifest: Manifest | None, options: NamingOptions,
@@ -109,11 +129,11 @@ def render(page: Page, manifest: Manifest | None, options: NamingOptions,
     template = options.template or ""
     for match in _TOKEN.finditer(template):
         if match.start() > pos:
-            segments.append((False, clean(template[pos:match.start()], options)))
+            segments.append((False, _literal(template[pos:match.start()])))
         segments.append((True, value(match.group(1))))
         pos = match.end()
     if pos < len(template):
-        segments.append((False, clean(template[pos:], options)))
+        segments.append((False, _literal(template[pos:])))
     kept = []
     for is_value, text in segments:
         if not text:

@@ -91,6 +91,7 @@
  "download.sep_hyphen": "- (hyphen)",
  "download.sep_dot": ". (dot)",
  "download.sep_space": "space",
+ "download.pad_separator": "with spaces around it ( - )",
  "download.replace_spaces": "Replace spaces with the separator",
  "download.strip_accents": "Remove accents",
  "download.custom": "Custom pattern:",

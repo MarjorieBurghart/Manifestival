@@ -147,8 +147,8 @@ def _page(i, label, **kw):
     return Page(index=i, label=label, **kw)
 
 
-def test_default_names_with_shelfmark_prefix():
-    opts = naming.NamingOptions(prefix="BnF lat. 1234")
+def test_names_with_shelfmark_prefix_and_spaces_replaced():
+    opts = naming.NamingOptions(prefix="BnF lat. 1234", replace_spaces=True)
     assert naming.render(_page(7, "f. 1r"), None, opts, 250) == "BnF_lat_1234_007_f_1r"
     assert naming.render(_page(7, "f. 1r"), None, opts, 1200) == "BnF_lat_1234_0007_f_1r"
 
@@ -161,18 +161,40 @@ def test_empty_parts_leave_no_stray_separator():
 
 def test_forbidden_characters_spaces_and_accents():
     opts = naming.NamingOptions(template="{prefix}-{label}", prefix="Médiathèque", separator="-",
-                                strip_accents=True)
+                                replace_spaces=True, strip_accents=True)
     assert naming.render(_page(1, 'Fol. 3v / 4r: "détail"?'), None, opts, 9) == "Mediatheque-Fol-3v-4r-detail"
-    keep = naming.NamingOptions(template="{label}", replace_spaces=False)
+    keep = naming.NamingOptions(template="{label}")
     assert naming.render(_page(1, "f. 1r"), None, keep, 9) == "f. 1r"
+    assert naming.render(_page(1, 'Fol. 3v / 4r: "détail"?'), None, keep, 9) == "Fol. 3v - 4r détail"
     assert naming.render(_page(1, "CON"), None, naming.NamingOptions(template="{label}"), 9) == "CON_"
-    assert naming.render(_page(1, "日本 語"), None, naming.NamingOptions(template="{label}",
-                                                                      strip_accents=True), 9) == "日本_語"
+    assert naming.render(_page(1, "日本 語"), None, naming.NamingOptions(
+        template="{label}", replace_spaces=True, strip_accents=True), 9) == "日本_語"
+
+
+def test_spaces_are_kept_by_default_and_the_separator_can_be_padded():
+    page = _page(7, "f. 1r")
+    plain = naming.NamingOptions(prefix="BnF lat. 1234")
+    assert naming.render(page, None, plain, 250) == "BnF lat. 1234_007_f. 1r"
+    padded = naming.NamingOptions(prefix="BnF lat. 1234", separator="-",
+                                  template=naming.build_template(["prefix", "n", "label"],
+                                                                 naming.joiner("-", True)))
+    assert padded.template == "{prefix} - {n} - {label}"
+    assert naming.render(page, None, padded, 250) == "BnF lat. 1234 - 007 - f. 1r"
+    # Préfixe vide : ni séparateur ni espace en tête.
+    assert naming.render(page, None, naming.NamingOptions(template=padded.template), 250) == "007 - f. 1r"
+    # Espaces remplacés : le séparateur entouré d'espaces reste tel quel.
+    both = naming.NamingOptions(prefix="BnF lat. 1234", separator="-", template=padded.template,
+                                replace_spaces=True)
+    assert naming.render(page, None, both, 250) == "BnF-lat-1234 - 007 - f-1r"
+    # L'espace pour séparateur ne s'entoure pas d'espaces.
+    assert naming.joiner(" ", True) == " "
+    spaced = naming.NamingOptions(prefix="BnF lat. 1234", separator=" ", template="{prefix} {n} {label}")
+    assert naming.render(page, None, spaced, 250) == "BnF lat. 1234 007 f. 1r"
 
 
 def test_metadata_and_title_tags():
     m = parse_manifest(manifest_v3(BASE), "", "fr")
-    opts = naming.NamingOptions(template="{title}_{meta:Folio}_{meta:cote}")
+    opts = naming.NamingOptions(template="{title}_{meta:Folio}_{meta:cote}", replace_spaces=True)
     assert naming.render(m.pages[1], m, opts) == "Psautier_de_test_2_Ms_lat_1234"
     assert naming.build_template(["prefix", "n", "meta"], "-", "Folio") == "{prefix}-{n}-{meta:Folio}"
 
@@ -180,7 +202,7 @@ def test_metadata_and_title_tags():
 def test_unique_names():
     assert naming.unique_stems(["a", "A", "a", "a_2"]) == ["a", "A_2", "a_3", "a_2_2"]
     pages = [_page(1, "f. 1"), _page(2, "f. 1")]
-    assert naming.file_stems(pages, None, naming.NamingOptions(template="{label}")) == ["f_1", "f_1_2"]
+    assert naming.file_stems(pages, None, naming.NamingOptions(template="{label}")) == ["f. 1", "f. 1_2"]
 
 
 def test_prefix_suggestions_put_shelfmarks_first():
@@ -213,7 +235,7 @@ class FakeWeb:
 
 def _jobs(n=3):
     m = parse_manifest(manifest_v3(BASE, n), "", "fr")
-    opts = naming.NamingOptions(prefix="Ms")
+    opts = naming.NamingOptions(prefix="Ms", replace_spaces=True)
     return m, list(zip(m.pages, naming.file_stems(m.pages, m, opts)))
 
 

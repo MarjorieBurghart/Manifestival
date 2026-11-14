@@ -96,6 +96,7 @@
  "download.sep_hyphen": "- (spojovník)",
  "download.sep_dot": ". (tečka)",
  "download.sep_space": "mezera",
+ "download.pad_separator": "s mezerami kolem ( - )",
  "download.replace_spaces": "Nahradit mezery oddělovačem",
  "download.strip_accents": "Odstranit diakritiku",
  "download.custom": "Vlastní vzor:",
