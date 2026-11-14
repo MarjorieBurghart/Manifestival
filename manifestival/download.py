@@ -79,6 +79,7 @@ def fetch_image(page: Page, size="max", *, cancel=None, fetch=net.fetch,
     total)`` pendant la réception. Un serveur qui ne répond pas n'est pas
     sollicité par une autre adresse de sa part."""
     last_error: Exception | None = None
+    blocked: net.FetchError | None = None
     unreachable: set[str] = set()
     urls = image_urls(page, size)
     if not urls:
@@ -95,8 +96,15 @@ def fetch_image(page: Page, size="max", *, cancel=None, fetch=net.fetch,
                               max_bytes=MAX_IMAGE_BYTES, accept="image/*", cancel=cancel,
                               progress=progress)
             except net.FetchError as exc:
-                if exc.kind in ("cancelled", "blocked"):
-                    raise  # protection anti-robots : aucune autre adresse
+                if exc.kind == "cancelled":
+                    raise
+                if exc.kind == "blocked":
+                    # Refus d'une protection anti-robots pour cette adresse : on
+                    # essaie les autres adresses officielles de l'image (une
+                    # protection peut viser l'interface web et non l'API IIIF),
+                    # sans jamais réessayer celle-ci.
+                    blocked = exc
+                    break
                 last_error = exc
                 if exc.retryable and attempt < len(RETRY_DELAYS):
                     delay = min(MAX_WAIT, exc.retry_after if exc.retry_after is not None else RETRY_DELAYS[attempt])
@@ -113,10 +121,11 @@ def fetch_image(page: Page, size="max", *, cancel=None, fetch=net.fetch,
                 return reply
             protection = net.protection_of(None, reply.data)
             if protection:  # page de vérification anti-robots à la place de l'image
-                raise net.FetchError("blocked", url, 200, protection=protection)
+                blocked = net.FetchError("blocked", url, 200, protection=protection)
+                break
             last_error = net.FetchError("not_image", url, detail=reply.content_type)
             break
-    raise last_error or net.FetchError("network", "")
+    raise blocked or last_error or net.FetchError("network", "")
 
 
 def download(jobs, folder, *, size="max", if_exists=SKIP, progress=None,

@@ -44,8 +44,12 @@ def _unique(urls) -> list[str]:
 
 def thumbnail_urls(page: Page, box: int = THUMBNAIL_BOX) -> list[str]:
     """Vignette : celle du canvas, puis une image réduite demandée au
-    service, puis l'image elle-même en dernier recours."""
+    service, puis l'image elle-même en dernier recours. Pour Gallica, l'API
+    IIIF passe avant la vignette du canvas (…/f1.thumbnail, une adresse de
+    l'interface web, que sa protection refuse aux logiciels)."""
     urls = []
+    if page.service and gallica.highres_url(page.service.url):
+        urls += _sized(page.service, box)
     if page.thumbnail_service:
         urls += _sized(page.thumbnail_service, box)
     if page.thumbnail_url:

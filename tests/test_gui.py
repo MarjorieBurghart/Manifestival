@@ -305,7 +305,9 @@ def test_blocked_server_stops_thumbnails_and_says_why(qtbot, window):
         qtbot.waitUntil(lambda: bool(window.blocked_message), timeout=10000)
         qtbot.waitUntil(lambda: len(window.model.failed) == 5, timeout=10000)
         image_requests = [r for r in server.requests if r.startswith("/iiif/")]
-        assert len(image_requests) <= 4   # pas une requête par vignette
+        # Arrêt au premier refus complet : seules les vignettes déjà en cours
+        # (4 à la fois) essaient leurs 3 adresses ; jamais les 5 × 3.
+        assert len(image_requests) <= 12
         assert "127.0.0.1" in window.statusBar().currentMessage()
         assert "403" in window.statusBar().currentMessage()
 

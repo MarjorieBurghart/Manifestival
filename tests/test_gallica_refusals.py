@@ -136,3 +136,36 @@ def test_challenge_message_does_not_show_code_200():
     assert "page de vérification" in text and "200" not in text and "Cloudflare" in text
     text = error_text(net.FetchError("blocked", MANIFEST, 403, protection="Cloudflare"), Translator("fr"))
     assert "code 403" in text
+
+
+def test_gallica_thumbnails_use_the_iiif_api_first():
+    page = Page(index=1, label="", service=ImageService(f"https://gallica.bnf.fr/iiif/ark:/12148/{DOC}/f1", 1),
+                thumbnail_url=f"https://gallica.bnf.fr/ark:/12148/{DOC}/f1.thumbnail")
+    urls = images.thumbnail_urls(page)
+    assert urls[0] == f"https://gallica.bnf.fr/iiif/ark:/12148/{DOC}/f1/full/!240,240/0/native.jpg"
+    assert urls.index(page.thumbnail_url) > 0
+    other = Page(index=1, label="", service=ImageService("https://e.org/iiif/x", 3),
+                 thumbnail_url="https://e.org/thumb.jpg")
+    assert images.thumbnail_urls(other)[0] == "https://e.org/thumb.jpg"
+
+
+def test_a_blocked_address_does_not_stop_the_other_official_ones(tmp_path):
+    from manifestival import download as dl
+    page = Page(index=3, label="f3", service=ImageService(f"https://gallica.bnf.fr/iiif/ark:/12148/{DOC}/f3", 1))
+    calls = []
+
+    def web(url, **kw):
+        calls.append(url)
+        if url.endswith(".highres"):
+            raise net.FetchError("blocked", url, 403, protection="Cloudflare")
+        return net.Response(b"\xff\xd8\xff\xe0" + bytes(16), "image/jpeg", url)
+    results = dl.download([(page, "f3")], tmp_path, fetch=web, sleep=lambda s: None,
+                          pacer=dl.Pacer(clock=lambda: 0.0, sleep=lambda s: None))
+    assert results[0].status == "ok" and calls[0].endswith(".highres")
+    assert calls[1].endswith("/f3/full/full/0/native.jpg")
+    # Toutes les adresses refusées : le refus est rendu, et le téléchargement s'arrête.
+    calls.clear()
+    blocked = lambda url, **kw: (_ for _ in ()).throw(net.FetchError("blocked", url, 403, protection="Cloudflare"))  # noqa: E731
+    results = dl.download([(page, "a"), (page, "b")], tmp_path, fetch=blocked, sleep=lambda s: None,
+                          pacer=dl.Pacer(clock=lambda: 0.0, sleep=lambda s: None))
+    assert [r.error.kind for r in results] == ["blocked", "blocked"]

@@ -50,6 +50,7 @@ class ImageTask(QRunnable):
 
     def run(self):
         error = None
+        blocked = None   # refus anti-robots ; les autres adresses sont essayées
         for url in self.urls:
             attempt = 0
             while not self.cancel.is_set():
@@ -59,8 +60,8 @@ class ImageTask(QRunnable):
                 except net.FetchError as exc:
                     error = exc
                     if exc.kind == "blocked":
-                        self._emit(b"", error)  # aucune autre adresse
-                        return
+                        blocked = exc       # adresse suivante, sans réessayer
+                        break
                     if exc.retryable and attempt < self.retries:
                         attempt += 1
                         delay = min(20.0, exc.retry_after if exc.retry_after is not None else 2.0 * attempt)
@@ -77,13 +78,13 @@ class ImageTask(QRunnable):
                     return
                 protection = net.protection_of(None, reply.data)
                 if protection:  # page de vérification anti-robots
-                    self._emit(b"", net.FetchError("blocked", url, 200, protection=protection))
-                    return
+                    blocked = net.FetchError("blocked", url, 200, protection=protection)
+                    break
                 error = net.FetchError("not_image", url, detail=reply.content_type)
                 break
             if self.cancel.is_set():
                 break
-        self._emit(b"", error)
+        self._emit(b"", blocked or error)
 
     def _emit(self, data, error):
         if self.cancel.is_set():
