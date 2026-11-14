@@ -8,7 +8,15 @@ la boucle d'événements, sauf si la console en fait déjà tourner une.
 """
 from __future__ import annotations
 
+from pathlib import Path
 import sys
+
+ICON = Path(__file__).resolve().parent / "resources" / "manifestival.png"
+
+
+def icon_path() -> Path:
+    return ICON
+
 
 # Fenêtres ouvertes sans boucle d'événements propre (console IPython) : une
 # référence les garde en vie après le retour de main().
@@ -57,6 +65,9 @@ def start(argv=None, settings=None):
     from .ui.main_window import MainWindow
 
     app = QApplication.instance() or QApplication(argv)
+    if ICON.is_file():
+        from PySide6.QtGui import QIcon
+        app.setWindowIcon(QIcon(str(ICON)))
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(__version__)
     app.setOrganizationName("Manifestival")
@@ -74,8 +85,14 @@ def start(argv=None, settings=None):
 
 
 def main(argv=None, settings=None) -> int:
+    argv = list(sys.argv if argv is None else argv) or ["manifestival"]
+    # macOS ancien : le Finder ajoute « -psn_… » aux arguments.
+    argv = [argv[0]] + [a for a in argv[1:] if not a.startswith("-psn_")]
     if _pyside6_missing():
         return 1
+    if len(argv) > 2 and argv[1] == "--self-test":
+        from .self_test import run
+        return run(argv[2])
     app, window = start(argv, settings)
     if qt_loop_running():
         # La console fait déjà tourner Qt : la fenêtre vit sans la bloquer.

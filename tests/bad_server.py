@@ -2,7 +2,7 @@
 """Serveur HTTP de test qui se comporte mal, pour éprouver le réseau.
 
 Chemins : /hang (ne répond jamais), /slow (répond après ``slow_delay``
-secondes), /trickle (envoie un octet toutes les ``trickle_delay``
+secondes), /trickle (envoie ``trickle_chunk`` octets toutes les ``trickle_delay``
 secondes), /cut (coupe la connexion au milieu de l'image), /error500
 (erreur 500), /ok (image normale). ``closed_url()`` : un port où rien
 n'écoute (serveur éteint).
@@ -18,8 +18,9 @@ BODY = b"\xff\xd8\xff\xe0" + bytes(4000) + b"\xff\xd9"
 
 
 class BadServer:
-    def __init__(self, slow_delay=2.0, trickle_delay=0.5):
+    def __init__(self, slow_delay=2.0, trickle_delay=0.5, trickle_chunk=1):
         self.slow_delay, self.trickle_delay = slow_delay, trickle_delay
+        self.trickle_chunk = trickle_chunk
         self.stop = threading.Event()
         self.hits: dict[str, int] = {}
         server = self
@@ -42,10 +43,11 @@ class BadServer:
                         return self._send(BODY)
                     if path.startswith("/trickle"):
                         self._head(len(BODY))
-                        for byte in BODY:
+                        step = server.trickle_chunk
+                        for start in range(0, len(BODY), step):
                             if server.stop.wait(server.trickle_delay):
                                 return
-                            self.wfile.write(bytes([byte]))
+                            self.wfile.write(BODY[start:start + step])
                             self.wfile.flush()
                         return
                     if path.startswith("/cut"):

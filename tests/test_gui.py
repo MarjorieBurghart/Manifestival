@@ -293,6 +293,7 @@ def test_preview_zooms_to_full_resolution(qtbot, settings, monkeypatch, tiles):
 def test_blocked_server_stops_thumbnails_and_says_why(qtbot, window):
     with IIIFServer(real_jpeg()) as server:
         server.cloudflare = True
+        server.delay = 0.3   # plusieurs vignettes en cours au moment du blocage
         _open(qtbot, window, server.base + "/manifest3.json")
         qtbot.waitUntil(lambda: bool(window.blocked_message), timeout=10000)
         qtbot.waitUntil(lambda: len(window.model.failed) == 5, timeout=10000)
@@ -351,7 +352,7 @@ def test_loading_a_silent_manifest_can_be_cancelled(qtbot, window):
 def test_download_shows_megabytes_while_receiving(qtbot, settings, tmp_path):
     from bad_server import BadServer
     from manifestival.manifest import Manifest, Page
-    with BadServer(trickle_delay=0.0005) as bad:
+    with BadServer(trickle_delay=0.05, trickle_chunk=200) as bad:
         pages = (Page(index=1, label="f1", image_url=bad.base + "/trickle/1.jpg"),)
         manifest = Manifest(source="", id="", label="Ms", version=3, pages=pages, canvas_count=1)
         settings.setValue("download/folder", str(tmp_path))

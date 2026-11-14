@@ -1,0 +1,88 @@
+MANIFESTIVAL {version}
+Explorer un manifest IIIF et télécharger ses images.
+Explore a IIIF manifest and download its images.
+
+L'interface est disponible en sept langues (menu Langue) : français, anglais,
+allemand, italien, tchèque, russe et japonais.
+
+
+FRANÇAIS
+--------
+
+Aucune installation n'est nécessaire : décompressez l'archive, puis lancez
+Manifestival. Manifestival n'est pas signé numériquement : au premier
+lancement, le système demande une confirmation.
+
+Windows
+  Double-cliquez sur Manifestival.exe. Si Windows affiche « Windows a protégé
+  votre ordinateur », cliquez sur « Informations complémentaires », puis
+  « Exécuter quand même ».
+
+macOS
+  Déplacez Manifestival.app dans le dossier Applications si vous le
+  souhaitez. Au premier lancement, faites un clic droit (ou Ctrl+clic) sur
+  Manifestival.app, choisissez « Ouvrir », puis confirmez « Ouvrir ». Si
+  macOS refuse, ouvrez Réglages Système > Confidentialité et sécurité, et
+  cliquez sur « Ouvrir quand même » en bas de la page.
+
+Linux
+  Lancez Manifestival dans le dossier décompressé (double-clic, ou
+  ./Manifestival dans un terminal).
+
+Mode d'emploi : menu Aide > Mode d'emploi.
+Signaler un problème, nouvelles versions :
+  https://github.com/MarjorieBurghart/Manifestival
+
+
+ENGLISH
+-------
+
+No installation is needed: unzip the archive, then start Manifestival.
+Manifestival is not digitally signed: the first time, your system asks you
+to confirm.
+
+Windows
+  Double-click Manifestival.exe. If Windows says "Windows protected your PC",
+  click "More info", then "Run anyway".
+
+macOS
+  Move Manifestival.app to the Applications folder if you wish. The first
+  time, right-click (or Ctrl-click) Manifestival.app, choose "Open", then
+  confirm "Open". If macOS refuses, open System Settings > Privacy &
+  Security, and click "Open Anyway" at the bottom of the page.
+
+Linux
+  Start Manifestival in the unzipped folder (double-click, or
+  ./Manifestival in a terminal).
+
+How to use: Help menu > How to use.
+Report a problem, new versions:
+  https://github.com/MarjorieBurghart/Manifestival
+
+
+LICENCE / LICENSE
+-----------------
+
+Manifestival : © 2026 Marjorie Burghart, licence MIT (licences/Manifestival.txt).
+Vous pouvez l'utiliser, le modifier et le redistribuer librement, à condition
+de conserver la mention du droit d'auteur et de la licence.
+You may use, modify and redistribute it freely, provided the copyright and
+licence notice are kept.
+
+
+COMPOSANTS / COMPONENTS
+-----------------------
+
+Manifestival embarque Python et les bibliothèques suivantes, dont les
+licences sont dans le dossier « licences » :
+Manifestival includes Python and the following libraries, whose licences
+are in the "licences" folder:
+
+  - Python (Python Software Foundation License)        Python.txt
+  - Qt et PySide6 (GNU LGPL v3)                        LGPL-3.0.txt, GPL-3.0.txt
+  - certifi (Mozilla Public License 2.0)               MPL-2.0.txt
+
+Les bibliothèques Qt sont des fichiers distincts, qui peuvent être
+remplacés par d'autres versions compatibles.
+The Qt libraries are separate files, which can be replaced by other
+compatible versions.
